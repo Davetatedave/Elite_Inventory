@@ -56,10 +56,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "tracker_project.urls"
 
+
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": ["./templates", "./templates/snippets", "./templates/shipping_tracker"],
+        "DIRS": ["./templatetags","./templates", "./templates/snippets", "./templates/shipping_tracker"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

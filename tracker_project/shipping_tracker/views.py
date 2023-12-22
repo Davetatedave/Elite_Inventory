@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.core import serializers
 from django.core.paginator import Paginator
 from django.utils.dateparse import parse_date
 from .models import trackingDb
@@ -61,12 +62,16 @@ def test_index(request):
     
     data=trackingDb.objects.all()
     columns = [f for f in trackingDb._meta.fields]
-    
+    page=request.GET.get("page",1)
+    paginator=Paginator(data,10)
+    table_info = paginator.get_page(page)
     context={
         "page_title": "Welcome",
-        "tableinfo": data,
+        "table_data": table_info,
+        "paginator": paginator,
         "columns": columns,
     }
+
     return render(request,context=context,template_name="index_test.html")
 
 class ShippingDetailView(DetailView):
