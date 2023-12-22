@@ -1,0 +1,48 @@
+<div id="filter_module"
+     class="row border rounded rounded-md border-slate-500 mx-auto py-2 mt-4">
+    <h2>Filter Box</h2>
+    <!-- Filter Modules -->
+    <div class="row justify-content-around">
+        <!-- Date Filter -->
+        <div class="col-3 items-center justify-center border rounded rounded-md border-slate-500">
+            <form :hx-vals='JSON.stringify({grouped:activeTab})'
+                  hx-get=""
+                  hx-target="#table-pagination-container"
+                  class="p-3 mr-3 d-flex flex-column w-fit  justify-content-center"
+                  onchange="console.log('Hello')">
+                <label for="start_date">Start:</label>
+                <input type="date"
+                       id="start_date"
+                       class="border-2"
+                       name="start_date"
+                       value="{{ date.0|date:'Y-m-d' }}"
+                       required
+                       onchange="valiDate()">
+                <div class="w-100"></div>
+                <label for="end_date">End:</label>
+                <input type="date"
+                       id="end_date"
+                       class="border-2"
+                       name="end_date"
+                       value="{{ date.1|date:'Y-m-d' }}"
+                       required
+                       onchange="valiDate()" />
+                <div class="w-max pt-3 ">
+                    <button class="btn btn-primary" type="submit" id="date_filter_button">Filter</button>
+                    <button class="btn btn-danger" type="button" id="date_reset_button">Reset</button>
+                </div>
+                <p id="date_error" class="text-danger"></p>
+            </form>
+        </div>
+        <!-- Status Filter -->
+        <div class="col-3 items-center justify-center border rounded rounded-md border-slate-500">
+            <select name="field1"
+                    id="field1"
+                    multiple="true"
+                    onchange="console.log(Array.from(this.selectedOptions).map(option => option.label))">
+                {% for status in statuses %}<option value="{{ status }}">{{ status }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-3 items-center justify-center border rounded rounded-md border-slate-500">Hello</div>
+    </div>
+</div>

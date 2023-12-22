@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}
+  {{ page_title }}
+{% endblock title %}
+{% block content %}
+  <div x-data="{% for column in columns %} '{{ column.name }}_show':true,{% endfor %}">
+    <div class="dropdown ms-auto" x-data="{ dropdownShow: false }">
+      <button class="btn btn-secondary dropdown-toggle"
+              type="button"
+              id="columnDropdown"
+              @click="dropdownShow =! dropdownShow"
+              x-show="activeTab == 'individual'"
+              aria-haspopup="true"
+              aria-expanded="false">Columns</button>
+      <div class="dropdown-men"
+           x-show="dropdownShow"
+           aria-labelledby="columnDropdown"
+           x-cloak
+           @click.outside="dropdownShow = false">
+        {% for column in columns %}
+          <div>
+            <input @click="{{ column.name }}_show = ! {{ column.name }}_show"
+                   type="checkbox"
+                   id="toggle_{{ column.name }}"
+                   checked>
+            <label for="toggle_{{ column.name }}">{{ column.verbose_name }}</label>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          {% for column in columns %}<td x-show="{{ column.name }}_show">{{ column.verbose_name }}</td>{% endfor %}
+        </tr>
+      </thead>
+    </table>
+  </div>
+{% endblock content %}

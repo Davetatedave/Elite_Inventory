@@ -1,0 +1,17 @@
+<div class="modalheader">
+    <h3 class="col-11">
+        Order: <a href="https://www.backmarket.co.uk/bo_merchant/orders/all?see-order-details={{ object.order_id }}"
+    target="_blank">{{ object.order_id }}</a>
+    </h3>
+    <button class="col-1 btn-close" @click="modalShow = false"></button>
+</div>
+<div class="modalBody">
+    {% for item in object.history %}
+        <ul>
+            <li>
+                <strong>Date:</strong> {{ item.0 }}
+                <strong>Activity:</strong> {{ item.1|title }}
+            </li>
+        </ul>
+    {% endfor %}
+</div>
