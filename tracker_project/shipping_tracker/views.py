@@ -8,7 +8,7 @@ from django.views.generic import ListView, DetailView, UpdateView
 from django.db.models import Count
 from django.http import HttpResponse
 from django.template.loader import render_to_string
-
+from scripts import getPCResults, calculateSKU
 
 def index(request):
     
@@ -77,3 +77,21 @@ def shipping(request):
 class ShippingDetailView(DetailView):
     model = trackingDb
     template_name = "trackingdb_detail.html"
+
+def phoneCheck(request):
+    
+    start=request.GET.get("pCStart",None)
+    end=request.GET.get("pCEnd",None)
+    po=request.GET.get("po",None)
+    
+    df = getPCResults(start,end,po)
+    
+    for device in df:
+        try:
+            {"imei":device["imei"],
+            "sku":calculateSKU(device),
+            "status":device["status"]}
+        except:
+            pass
+        
+    return HttpResponse(df)
