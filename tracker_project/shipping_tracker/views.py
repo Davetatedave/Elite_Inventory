@@ -58,7 +58,7 @@ def index(request):
 
     return render(request, "index.html", context=context)
 
-def test_index(request):
+def shipping(request):
     
     data=trackingDb.objects.all()
     columns = [f for f in trackingDb._meta.fields]
@@ -72,7 +72,7 @@ def test_index(request):
         "columns": columns,
     }
 
-    return render(request,context=context,template_name="index_test.html")
+    return render(request,context=context,template_name="shipping.html")
 
 class ShippingDetailView(DetailView):
     model = trackingDb
