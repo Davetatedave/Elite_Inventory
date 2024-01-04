@@ -1,5 +1,5 @@
 
-from keys import phonecheck_api_key
+from .keys import phonecheck_api_key
 import requests
 import json
 import datetime
@@ -45,23 +45,25 @@ def getPCResults(date_start=None, date_finish=None, po_number=None):
     return df
 
 def calculateSKU(phoneData):
-    model = phoneData["model"]
-    colour = phoneData["color"]
-    capacity = phoneData["capacity"]
-    grade = phoneData["grade"]
+    model = phoneData["Model"]
+    colour = phoneData["Color"]
+    capacity = phoneData["Memory"]
+    grade = phoneData["Grade"]
 
     # Use filter to find a matching deviceAttributed record
     matching_records = deviceAttributes.objects.filter(
         model=model,
-        colour=colour,
+        color=colour,
         capacity=capacity,
         grade=grade
     )
-
+    print(matching_records.query)
+    
+    
     # Check if a matching record was found
     if matching_records.exists():
         SKU = matching_records.first()  # Get the first matching record
         return SKU.sku
     else:
         # Handle the case where no matching record is found
-        return None  # Or raise an exception or handle it as needed
+        return ()  # Or raise an exception or handle it as needed
