@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+{% block title %}
+  {{ page_title }}
+{% endblock title %}
+{% block content %}
+  {% for device in device_list %}
+    <p>{{ device.imei }}</p>
+    <p>{{ device.sku.model }}</p>
+    <p>{{ device.sku.capacity }}</p>
+    <p>{{ device.sku.color }}</p>
+    <p>{{ device.sku.grade }}</p>
+  {% endfor %}
+{% endblock content %}

@@ -7,6 +7,5 @@ urlpatterns = [
     path("shipping/", views.shipping, name="shipping"),
     path(route="<int:pk>/", view=views.ShippingDetailView.as_view(), name="detail"),
     path("phoneCheck/", views.phoneCheck, name="phoneCheck"),
+    path("inventory/", views.inventory, name="phoneCheck"),
 ]
-
-

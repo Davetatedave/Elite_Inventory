@@ -52,18 +52,15 @@ def calculateSKU(phoneData):
 
     # Use filter to find a matching deviceAttributed record
     matching_records = deviceAttributes.objects.filter(
-        model=model,
+        model__iexact=model,
         color=colour,
         capacity=capacity,
         grade=grade
     )
-    print(matching_records.query)
-    
     
     # Check if a matching record was found
     if matching_records.exists():
         SKU = matching_records.first()  # Get the first matching record
         return SKU.sku
     else:
-        # Handle the case where no matching record is found
-        return ()  # Or raise an exception or handle it as needed
+        raise ValueError("No matching record found")

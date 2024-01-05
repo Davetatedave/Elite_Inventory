@@ -32,7 +32,7 @@
         {% endfor %}
       </div>
     </div>
-    <table class="table table-striped" x-data="{tableData:{{ table_json }}}">
+    <table class="table table-striped" x-data="{ tableData:{{ table_json }} }">
       <thead>
         <tr>
           {% for column in columns %}<td x-show="{{ column.name }}_show" x-cloak>{{ column.verbose_name }}</td>{% endfor %}
