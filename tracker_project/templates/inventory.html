@@ -1,14 +1,107 @@
 {% extends "base.html" %}
 {% load custom_tags %}
 {% block title %}
-  {{ page_title }}
+    {{ page_title }}
 {% endblock title %}
 {% block content %}
-  {% for device in device_list %}
-    <p>{{ device.imei }}</p>
-    <p>{{ device.sku.model }}</p>
-    <p>{{ device.sku.capacity }}</p>
-    <p>{{ device.sku.color }}</p>
-    <p>{{ device.sku.grade }}</p>
-  {% endfor %}
+    <div class="d-flex flex-row my-2" id="filters">
+        {% comment %} Model Select {% endcomment %}
+        <div class="dropdown d-block mx-2" x-data="{ dropdownShow: false }">
+            <button class="btn btn-secondary dropdown-toggle"
+                    type="button"
+                    id="columnDropdown"
+                    @click="dropdownShow =! dropdownShow"
+                    x-show="activeTab == 'individual'"
+                    aria-haspopup="true"
+                    aria-expanded="false">Models</button>
+            <div id="filterSelect"
+                 class="dropdown-men vh-50"
+                 x-show="dropdownShow"
+                 aria-labelledby="columnDropdown"
+                 x-cloak
+                 @click.outside="dropdownShow = false">
+                {% for model in device_attributes.model %}
+                    <div>
+                        <input @click="{{ model }}_show = ! {{ model }}_show"
+                               type="checkbox"
+                               id="toggle_{{ model }}"
+                               checked />
+                        <label for="toggle_{{ model }}">{{ model }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="dropdown d-block mx-2" x-data="{ dropdownShow2: false }">
+            <button class="btn btn-secondary dropdown-toggle"
+                    type="button"
+                    id="columnDropdown"
+                    @click="dropdownShow2 =! dropdownShow2"
+                    x-show="activeTab == 'individual'"
+                    aria-haspopup="true"
+                    aria-expanded="false">Grade</button>
+            <div id="filterSelect"
+                 class="dropdown-men vh-50"
+                 x-show="dropdownShow2"
+                 aria-labelledby="columnDropdown"
+                 x-cloak
+                 @click.outside="dropdownShow2 = false">
+                {% for grade in device_attributes.grade %}
+                    <div>
+                        <input @click="{{ grade }}_show = ! {{ grade }}_show"
+                               type="checkbox"
+                               id="toggle_{{ grade }}"
+                               checked />
+                        <label for="toggle_{{ grade }}">{{ grade }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="dropdown d-block mx-2" x-data="{ dropdownShow3: false }">
+            <button class="btn btn-secondary dropdown-toggle"
+                    type="button"
+                    id="columnDropdown"
+                    @click="dropdownShow3 =! dropdownShow3"
+                    x-show="activeTab == 'individual'"
+                    aria-haspopup="true"
+                    aria-expanded="false">Capacity</button>
+            <div id="filterSelect"
+                 class="dropdown-men vh-50"
+                 x-show="dropdownShow3"
+                 aria-labelledby="columnDropdown"
+                 x-cloak
+                 @click.outside="dropdownShow3 = false">
+                {% for cap in device_attributes.capacity %}
+                    <div>
+                        <input @click="{{ cap }}_show = ! {{ cap }}_show"
+                               type="checkbox"
+                               id="toggle_{{ cap }}"
+                               checked />
+                        <label for="toggle_{{ cap }}">{{ cap }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <table class="table table-striped table-bordered table-hover">
+        <tr>
+            <th>Select</th>
+            <th>IMEI</th>
+            <th>Model</th>
+            <th>Capacity</th>
+            <th>Color</th>
+            <th>Grade</th>
+        </tr>
+        {% for device in device_list %}
+            <tr>
+                <td>
+                    <input type="checkbox" name="device" value="{{ device.imei }}" />
+                </td>
+                <td>{{ device.imei }}</td>
+                <td>{{ device.sku.model }}</td>
+                <td>{{ device.sku.capacity }}</td>
+                <td>{{ device.sku.color }}</td>
+                <td>{{ device.sku.grade }}</td>
+            </tr>
+        {% endfor %}
+    </table>
 {% endblock content %}

@@ -16,3 +16,4 @@ function valiDate() {
         date_error.style.display='none';
     }
     }
+
