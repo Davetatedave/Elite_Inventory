@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+{% block title %}
+    {{ page_title }}
+{% endblock title %}
+{% block content %}
+    <table id="myTable" class="display">
+        <thead>
+            <tr>
+                <th>IMEI</th>
+                <th>Model</th>
+                <th>Capacity</th>
+                <th>Color</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in device_list %}
+                <tr>
+                    <td>{{ device.imei }}</td>
+                    <td>{{ device.sku.model }}</td>
+                    <td>{{ device.sku.capacity }}</td>
+                    <td>{{ device.sku.color }}</td>
+                    <td>{{ device.sku.grade }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock content %}

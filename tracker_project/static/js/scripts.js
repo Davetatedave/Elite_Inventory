@@ -17,3 +17,21 @@ function valiDate() {
     }
     }
 
+    $(document).ready( function () {
+        $('#myTable').DataTable();
+    } );
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const clearButtons = document.querySelectorAll('.clear-button');
+    
+        clearButtons.forEach(function(clearButton) {
+            clearButton.addEventListener('click', function() {
+                const dropdownId = this.getAttribute('data-dropdown');
+                const checkboxes = document.querySelectorAll(`input[name="models"]`);
+    
+                checkboxes.forEach(function(checkbox) {
+                    checkbox.checked = false;
+                });
+            });
+        });
+    });

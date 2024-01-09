@@ -10,6 +10,7 @@ from django.db import IntegrityError
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from .scripts import getPCResults, calculateSKU
+from .forms import FilterForm
 
 
 def index(request):
@@ -126,6 +127,8 @@ def phoneCheck(request):
 
 
 def inventory(request):
+    filter_form = FilterForm()
+
     models = request.GET.get("models", None)
 
     device_attributes = deviceAttributes.objects.all()
@@ -141,5 +144,29 @@ def inventory(request):
     context = {
         "device_list": devices.objects.select_related("sku").all(),
         "device_attributes": distinct_values,
+        "filter_form": filter_form,
     }
     return render(request, context=context, template_name="inventory.html")
+
+
+def inventory2(request):
+    filter_form = FilterForm()
+
+    models = request.GET.get("models", None)
+
+    device_attributes = deviceAttributes.objects.all()
+
+    if models:
+        device_attributes = device_attributes.filter(model=models)
+
+    distinct_values = {
+        field.name: set(getattr(obj, field.name) for obj in device_attributes)
+        for field in deviceAttributes._meta.fields
+    }
+
+    context = {
+        "device_list": devices.objects.select_related("sku").all(),
+        "device_attributes": distinct_values,
+        "filter_form": filter_form,
+    }
+    return render(request, context=context, template_name="inventory2.html")
