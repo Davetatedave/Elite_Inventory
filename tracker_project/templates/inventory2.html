@@ -4,7 +4,7 @@
     {{ page_title }}
 {% endblock title %}
 {% block content %}
-    <table id="myTable" class="display">
+    <table id="myTable" class="display" style="width:100%">
         <thead>
             <tr>
                 <th>IMEI</th>
@@ -15,15 +15,6 @@
             </tr>
         </thead>
         <tbody>
-            {% for device in device_list %}
-                <tr>
-                    <td>{{ device.imei }}</td>
-                    <td>{{ device.sku.model }}</td>
-                    <td>{{ device.sku.capacity }}</td>
-                    <td>{{ device.sku.color }}</td>
-                    <td>{{ device.sku.grade }}</td>
-                </tr>
-            {% endfor %}
         </tbody>
     </table>
 {% endblock content %}

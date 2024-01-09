@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView
 from django.db.models import Count
 from django.db import IntegrityError
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from .scripts import getPCResults, calculateSKU
 from .forms import FilterForm
@@ -91,8 +91,7 @@ def phoneCheck(request):
     end = request.GET.get("pCEnd", None)
     po = request.GET.get("po", None)
 
-    df = getPCResults("2024-04-01", "2024-04-01", po)
-    devices.objects.all().delete()
+    df = getPCResults(start, end, po)
     missing_sku = []
     to_upload = []
     duplicate_devices = []
@@ -150,8 +149,6 @@ def inventory(request):
 
 
 def inventory2(request):
-    filter_form = FilterForm()
-
     models = request.GET.get("models", None)
 
     device_attributes = deviceAttributes.objects.all()
@@ -165,8 +162,54 @@ def inventory2(request):
     }
 
     context = {
-        "device_list": devices.objects.select_related("sku").all(),
         "device_attributes": distinct_values,
-        "filter_form": filter_form,
     }
     return render(request, context=context, template_name="inventory2.html")
+
+
+# TODO = "Implement Sorting Functionality "
+
+
+def inventoryAjax(request):
+    # Extract parameters sent by DataTables
+    start = int(request.GET.get("start", 0))
+    length = int(request.GET.get("length", 10))  # Default page size
+
+    search_value = request.GET.get("search[value]", None)
+
+    # Your data filtering and processing logic here
+    models = request.GET.get("models", None)
+    device_attributes = deviceAttributes.objects.all()
+
+    if models:
+        device_attributes = device_attributes.filter(model=models)
+
+    phones = devices.objects.select_related("sku").all()
+
+    # Apply additional filtering based on the search query
+    if search_value:
+        # Example: Filter based on the 'imei' field
+        phones = phones.filter(imei__icontains=search_value)
+
+    # Apply pagination to the data
+    data = [
+        {
+            "imei": device.imei,
+            "model": device.sku.model,
+            "capacity": device.sku.capacity,
+            "color": device.sku.color,
+            "grade": device.sku.grade,
+        }
+        for device in phones[start : start + length]
+    ]
+
+    # Get the total count of records (for pagination info)
+    total_records = devices.objects.count()
+
+    response_data = {
+        "data": data,
+        "recordsTotal": total_records,
+        "recordsFiltered": total_records,  # Set this to the filtered count if applicable
+    }
+
+    return JsonResponse(response_data)

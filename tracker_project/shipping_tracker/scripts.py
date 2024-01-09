@@ -1,4 +1,3 @@
-
 from .keys import phonecheck_api_key
 import requests
 import json
@@ -24,7 +23,7 @@ def getPCResults(date_start=None, date_finish=None, po_number=None):
     headersList = {"Content-Type": "application/json"}
 
     payload = json.dumps(
-        {"Apikey": "76d9b060-3417-475c-881c-7403463a0f2e", "Username": "elite2","limit":10, **date}
+        {"Apikey": "76d9b060-3417-475c-881c-7403463a0f2e", "Username": "elite2", **date}
     )
 
     response = requests.request(
@@ -41,8 +40,9 @@ def getPCResults(date_start=None, date_finish=None, po_number=None):
             ).json()[1]
             newDf = pd.DataFrame(response2[1:])
             df = pd.concat([df, newDf])
-            
+
     return df
+
 
 def calculateSKU(phoneData):
     model = phoneData["Model"]
@@ -52,12 +52,9 @@ def calculateSKU(phoneData):
 
     # Use filter to find a matching deviceAttributed record
     matching_records = deviceAttributes.objects.filter(
-        model__iexact=model,
-        color=colour,
-        capacity=capacity,
-        grade=grade
+        model__iexact=model, color=colour, capacity=capacity, grade=grade
     )
-    
+
     # Check if a matching record was found
     if matching_records.exists():
         SKU = matching_records.first()  # Get the first matching record

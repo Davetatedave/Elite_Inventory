@@ -16,10 +16,26 @@ function valiDate() {
         date_error.style.display='none';
     }
     }
-
     $(document).ready( function () {
-        $('#myTable').DataTable();
+        $('#myTable').DataTable({
+            ajax: {
+                url: '/inventoryAjax/',  // Replace with your Django view URL
+                dataSrc: 'data',     // Data property name in the JSON response
+            },
+            columns: [
+                { data: 'imei' },
+                { data: 'model' },
+                { data: 'capacity' },
+                { data: 'color' },
+                { data: 'grade' },
+            ],
+            lengthMenu: [10, 25, 50],  // Define the dropdown menu options for record per page
+            pageLength: 10,
+            processing: true,
+            serverSide: true           // Define the default length per page
+        });
     } );
+
     
     document.addEventListener('DOMContentLoaded', function() {
         const clearButtons = document.querySelectorAll('.clear-button');
