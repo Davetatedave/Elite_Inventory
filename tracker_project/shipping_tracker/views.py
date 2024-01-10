@@ -81,8 +81,8 @@ def shipping(request):
     return render(request, context=context, template_name="shipping.html")
 
 
-class ShippingDetailView(DetailView):
-    model = trackingDb
+class deviceDetail(DetailView):
+    model = devices
     template_name = "trackingdb_detail.html"
 
 
@@ -168,6 +168,7 @@ def inventory2(request):
 
 
 # TODO = "Implement Sorting Functionality "
+# FIX "Pagination not working"
 
 
 def inventoryAjax(request):
@@ -178,7 +179,7 @@ def inventoryAjax(request):
     search_value = request.GET.get("search[value]", None)
 
     # Your data filtering and processing logic here
-    models = request.GET.get("models", None)
+    models = request.GET.get("model", None)
     device_attributes = deviceAttributes.objects.all()
 
     if models:
@@ -191,9 +192,13 @@ def inventoryAjax(request):
         # Example: Filter based on the 'imei' field
         phones = phones.filter(imei__icontains=search_value)
 
+    if models:
+        phones = phones.filter(sku__model=models)
+
     # Apply pagination to the data
     data = [
         {
+            "pk": device.pk,
             "imei": device.imei,
             "model": device.sku.model,
             "capacity": device.sku.capacity,
@@ -204,7 +209,7 @@ def inventoryAjax(request):
     ]
 
     # Get the total count of records (for pagination info)
-    total_records = devices.objects.count()
+    total_records = phones.count()
 
     response_data = {
         "data": data,
