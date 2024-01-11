@@ -30,9 +30,17 @@ class deviceAttributes(models.Model):
     grade = models.CharField(max_length=20, verbose_name="Grade")
 
 
+class deviceManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().exclude(status="Deleted")
+
+
 class devices(models.Model):
     imei = models.IntegerField(unique=True, verbose_name="IMEI")
     sku = models.ForeignKey(
         deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU"
     )
     status = models.CharField(max_length=20, verbose_name="Status")
+
+    objects = deviceManager()  # custom manager
+    all_objects = models.Manager()

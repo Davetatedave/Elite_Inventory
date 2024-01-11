@@ -172,18 +172,17 @@ def inventory2(request):
 
 
 def inventoryAjax(request):
+    print(request.GET)
     # Extract parameters sent by DataTables
     start = int(request.GET.get("start", 0))
     length = int(request.GET.get("length", 10))  # Default page size
+    print(f"start:{start} =, length: {length}")
 
     search_value = request.GET.get("search[value]", None)
 
     # Your data filtering and processing logic here
-    models = request.GET.get("model", None)
-    device_attributes = deviceAttributes.objects.all()
 
-    if models:
-        device_attributes = device_attributes.filter(model=models)
+    models = request.GET.get("model", None)
 
     phones = devices.objects.select_related("sku").all()
 
@@ -204,6 +203,7 @@ def inventoryAjax(request):
             "capacity": device.sku.capacity,
             "color": device.sku.color,
             "grade": device.sku.grade,
+            "status": device.status,
         }
         for device in phones[start : start + length]
     ]
@@ -218,3 +218,18 @@ def inventoryAjax(request):
     }
 
     return JsonResponse(response_data)
+
+
+def deleteDevices(request):
+    if request.method == "POST":
+        selected_pks = request.POST.getlist("pks")
+        print(selected_pks)
+        try:
+            # Update the status of devices with the selected PKs
+            devicesToDelete = devices.objects.filter(pk__in=selected_pks)
+            devicesToDelete.update(status="Deleted")
+            message = "Devices deleted successfully."
+            return JsonResponse({"message": message})
+        except Exception as e:
+            message = "Error updating devices."
+            return JsonResponse({"message": message, "error": str(e)}, status=500)
