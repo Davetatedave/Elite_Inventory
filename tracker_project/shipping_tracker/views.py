@@ -172,7 +172,6 @@ def inventory2(request):
 
 
 def inventoryAjax(request):
-    print(request.GET)
     # Extract parameters sent by DataTables
     start = int(request.GET.get("start", 0))
     length = int(request.GET.get("length", 10))  # Default page size
@@ -182,8 +181,10 @@ def inventoryAjax(request):
 
     # Your data filtering and processing logic here
 
-    models = request.GET.get("model", None)
-
+    models = request.GET.getlist("model[]", None)
+    grades = request.GET.getlist("grade[]", None)
+    colors = request.GET.getlist("color[]", None)
+    print(models)
     phones = devices.objects.select_related("sku").all()
 
     # Apply additional filtering based on the search query
@@ -192,7 +193,13 @@ def inventoryAjax(request):
         phones = phones.filter(imei__icontains=search_value)
 
     if models:
-        phones = phones.filter(sku__model=models)
+        phones = phones.filter(sku__model__in=models)
+
+    if grades:
+        phones = phones.filter(sku__grade__in=grades)
+
+    if colors:
+        phones = phones.filter(sku__color__in=colors)
 
     # Apply pagination to the data
     data = [

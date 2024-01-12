@@ -4,12 +4,25 @@
     {{ page_title }}
 {% endblock title %}
 {% block content %}
-    <select id="statusFilter">
-        <option value="">Select Model</option>
-        {% for model_group in device_attributes.model %}
-            <option value="{{ model_group }}">{{ model_group }}</option>
-        {% endfor %}
-    </select>
+    <div class="row my-2">
+        <div class="col-md-4">
+            <select class='filter' id="modelSelect" multiple style="width: 100%">
+                {% for model_group in device_attributes.model %}
+                    <option value="{{ model_group }}">{{ model_group }}</option>
+                {% endfor %}
+            </select>
+            <select class='filter' id="colorSelect" multiple style="width: 100%">
+                {% for color in device_attributes.color %}<option value="{{ color }}">{{ color }}</option>{% endfor %}
+            </select>
+            <select class='filter' id="gradeSelect" multiple style="width: 100%">
+                {% for grade in device_attributes.grade %}<option value="{{ grade }}">{{ grade }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4"></div>
+        <div class="col-md-4">
+            <div class="col-md-4"></div>
+        </div>
+    </div>
     <table id="invTable" class="display" style="width:100%">
         <thead>
             <tr>

@@ -134,3 +134,8 @@
 .nav-tabs:not(:active) {
   border-style: none !important;
 }
+
+.select2-container {
+  margin-bottom: 10px; /* Custom border */ /* Rounded corners */
+  /* Other styles */
+}

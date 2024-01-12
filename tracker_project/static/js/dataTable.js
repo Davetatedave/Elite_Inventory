@@ -1,6 +1,19 @@
 // DataTables
 
 $(document).ready(function () {
+  $("#modelSelect").select2({
+    placeholder: "Select Models",
+    theme: "classic",
+  });
+  $("#colorSelect").select2({
+    placeholder: "Select Colors",
+    theme: "classic",
+  });
+  $("#gradeSelect").select2({
+    placeholder: "Select Grades",
+    theme: "classic",
+  });
+
   var invTable = $("#invTable").DataTable({
     order: [],
     dom: "Bfrtip",
@@ -17,7 +30,7 @@ $(document).ready(function () {
             var selectedRows = dt.rows({ selected: true });
             let selectedPKs = selectedRows.data().map((row) => row.pk);
             selectedRows.remove().draw(false);
-            console.log(selectedPKs.toArray());
+
             $.ajax({
               url: "/deletedevices/",
               type: "POST",
@@ -45,7 +58,9 @@ $(document).ready(function () {
       url: "/inventoryajax/", // Replace with your Django view URL
       data: function (d) {
         return $.extend({}, d, {
-          model: $("#statusFilter").val(),
+          model: $("#modelSelect").val(),
+          grade: $("#gradeSelect").val(),
+          color: $("#colorSelect").val(),
         });
       },
       dataSrc: "data", // Data property name in the JSON response
@@ -71,9 +86,11 @@ $(document).ready(function () {
     select: true,
   });
   // Event listener for filter
-  $("#statusFilter").on("change", function () {
+  $(".filter").on("change", function () {
     // Reload DataTable with new filter criteria
     console.log("Status Changed");
+    console.log($("#gradeSelect").val());
+    console.log($("#modelSelect").val());
     invTable.ajax.reload();
   });
 });
