@@ -48,6 +48,7 @@ $(document).ready(function () {
         action: function (e, dt, node, config) {
           if (window.confirm("Really Delete Rows?")) {
             var csrftoken = Cookies.get("csrftoken");
+            console.log("csrftoken: " + csrftoken);
             var selectedRows = dt.rows({ selected: true });
             let selectedPKs = selectedRows.data().map((row) => row.pk);
 

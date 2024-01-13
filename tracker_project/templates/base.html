@@ -39,6 +39,7 @@
         </title>
     </head>
     <body>
+        {% csrf_token %}
         <div x-data="{ modalShow: false }"
              class="container-fluid page"
              :class="{ 'no-scroll': modalShow }">
