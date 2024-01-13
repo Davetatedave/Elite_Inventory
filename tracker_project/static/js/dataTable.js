@@ -1,5 +1,25 @@
 // DataTables
 
+//TODO: Add a button to change status of selected rows
+
+$.fn.dataTable.ext.buttons.changeStatus = {
+  extend: "collection",
+  text: "Change Status",
+  buttons: [
+    {
+      text: "Sold",
+      action: function (e, dt, node, config) {
+        var csrftoken = Cookies.get("csrftoken");
+        var selectedRows = dt.rows({ selected: true });
+        let selectedPKs = selectedRows.data().map((row) => row.pk);
+        selectedPKs.each(function (value) {
+          console.log("Sold:" + value);
+        });
+      },
+    },
+  ],
+};
+
 $(document).ready(function () {
   $("#modelSelect").select2({
     placeholder: "Select Models",
@@ -22,6 +42,7 @@ $(document).ready(function () {
       "pageLength",
       "selectAll",
       "selectNone",
+      "changeStatus",
       {
         text: "Delete",
         action: function (e, dt, node, config) {
@@ -29,7 +50,6 @@ $(document).ready(function () {
             var csrftoken = Cookies.get("csrftoken");
             var selectedRows = dt.rows({ selected: true });
             let selectedPKs = selectedRows.data().map((row) => row.pk);
-            selectedRows.remove().draw(false);
 
             $.ajax({
               url: "/deletedevices/",
@@ -85,6 +105,7 @@ $(document).ready(function () {
     serverSide: true,
     select: true,
   });
+
   // Event listener for filter
   $(".filter").on("change", function () {
     // Reload DataTable with new filter criteria
