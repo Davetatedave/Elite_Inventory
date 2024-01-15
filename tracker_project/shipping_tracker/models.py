@@ -32,7 +32,18 @@ class deviceAttributes(models.Model):
 
 class deviceManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().exclude(status="Deleted")
+        return super().get_queryset().exclude(deviceStatus=0)
+
+
+class deviceStatus(models.Model):
+    id = models.AutoField(primary_key=True)
+    status = models.CharField(
+        max_length=20, verbose_name="Device Status", default="Unvailable"
+    )
+    sellable = models.BooleanField(verbose_name="Sellable", default=False)
+
+    def __str__(self):
+        return self.status
 
 
 class devices(models.Model):
@@ -40,7 +51,15 @@ class devices(models.Model):
     sku = models.ForeignKey(
         deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU"
     )
-    status = models.CharField(max_length=20, verbose_name="Status")
+    deviceStatus = models.ForeignKey(
+        deviceStatus,
+        on_delete=models.SET_DEFAULT,
+        verbose_name="Device Status",
+        null=True,
+        default=2,
+    )
+    battery = models.IntegerField(verbose_name="Battery", null=True)
+    date_added = models.DateField(verbose_name="Date Added", auto_now_add=True)
 
     objects = deviceManager()  # custom manager
     all_objects = models.Manager()

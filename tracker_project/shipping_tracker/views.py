@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.core import serializers
 from django.core.paginator import Paginator
 from django.utils.dateparse import parse_date
-from .models import trackingDb, devices, deviceAttributes
+from .models import trackingDb, devices, deviceAttributes, deviceStatus
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView
 from django.db.models import Count
@@ -101,7 +101,10 @@ def phoneCheck(request):
         try:
             sku_instance = deviceAttributes.objects.get(sku=calculateSKU(device))
             new_device = devices(
-                imei=device["IMEI"], sku=sku_instance, status=device["Working"]
+                imei=device["IMEI"],
+                sku=sku_instance,
+                deviceStatus_id=2,
+                battery=device["BatteryHealthPercentage"],
             )
             new_device.save()
             to_upload.append(device["IMEI"])
@@ -152,6 +155,7 @@ def inventory2(request):
     models = request.GET.get("models", None)
 
     device_attributes = deviceAttributes.objects.all()
+    statuses = serializers.serialize("json", deviceStatus.objects.all())
 
     if models:
         device_attributes = device_attributes.filter(model=models)
@@ -163,19 +167,15 @@ def inventory2(request):
 
     context = {
         "device_attributes": distinct_values,
+        "statuses": statuses,
     }
     return render(request, context=context, template_name="inventory2.html")
-
-
-# TODO = "Implement Sorting Functionality "
-# FIX "Pagination not working"
 
 
 def inventoryAjax(request):
     # Extract parameters sent by DataTables
     start = int(request.GET.get("start", 0))
     length = int(request.GET.get("length", 10))  # Default page size
-    print(f"start:{start} =, length: {length}")
 
     search_value = request.GET.get("search[value]", None)
 
@@ -184,8 +184,11 @@ def inventoryAjax(request):
     models = request.GET.getlist("model[]", None)
     grades = request.GET.getlist("grade[]", None)
     colors = request.GET.getlist("color[]", None)
-    print(models)
-    phones = devices.objects.select_related("sku").all()
+    batteryA = request.GET.get("batteryA", None)
+    batteryB = request.GET.get("batteryB", None)
+    order = request.GET.get("order[0][column]", None)
+
+    phones = devices.objects.select_related("sku").select_related("deviceStatus").all()
 
     # Apply additional filtering based on the search query
     if search_value:
@@ -200,6 +203,22 @@ def inventoryAjax(request):
 
     if colors:
         phones = phones.filter(sku__color__in=colors)
+    if batteryA:
+        phones = phones.filter(battery__gte=batteryA)
+    if batteryB:
+        phones = phones.filter(battery__lte=batteryB)
+
+    if order:
+        column_order = request.GET.get(f"columns[{order}][data]", None)
+        print(column_order)
+        direction = request.GET.get("order[0][dir]", None)
+
+        if direction == "desc":
+            print(direction)
+            phones = phones.order_by(f"-{column_order}")
+        else:
+            print(direction)
+            phones = phones.order_by(column_order)
 
     # Apply pagination to the data
     data = [
@@ -210,7 +229,8 @@ def inventoryAjax(request):
             "capacity": device.sku.capacity,
             "color": device.sku.color,
             "grade": device.sku.grade,
-            "status": device.status,
+            "battery": device.battery,
+            "status": device.deviceStatus.status if device.deviceStatus else "Unknown",
         }
         for device in phones[start : start + length]
     ]
@@ -225,6 +245,22 @@ def inventoryAjax(request):
     }
 
     return JsonResponse(response_data)
+
+
+def updateStatus(request):
+    if request.method == "POST":
+        selected_pks = request.POST.getlist("pks")
+        status = request.POST.get("status")
+        print(selected_pks)
+        try:
+            # Update the status of devices with the selected PKs
+            devicesToUpdate = devices.objects.filter(pk__in=selected_pks)
+            devicesToUpdate.update(deviceStatus=status)
+            message = "Devices updated successfully."
+            return JsonResponse({"message": message})
+        except Exception as e:
+            message = "Error updating devices."
+            return JsonResponse({"message": message, "error": str(e)}, status=500)
 
 
 def deleteDevices(request):

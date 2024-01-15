@@ -1,23 +1,47 @@
 // DataTables
 
-//TODO: Add a button to change status of selected rows
+var statusdata = JSON.parse(
+  document.getElementById("filter_body").getAttribute("data-filter-data")
+);
+
+// Create an array of button configurations
+var buttonConfigs = statusdata.map(function (item) {
+  return {
+    text: item.fields.status, // Assuming 'status' is a property of 'fields' in each 'item'
+    action: function (e, dt, node, config) {
+      var csrftoken = Cookies.get("csrftoken");
+      var selectedRows = dt.rows({ selected: true });
+      let selectedPKs = selectedRows.data().map((row) => row.pk);
+      console.log(item.pk);
+      selectedPKs.each(function (value) {
+        $.ajax({
+          url: "/updateStatus/",
+          type: "POST",
+          headers: { "X-CSRFToken": csrftoken },
+          data: {
+            pks: selectedPKs.toArray(),
+            status: item.pk,
+          },
+          success: function (response) {
+            console.log(response.message);
+
+            setTimeout(function () {
+              dt.ajax.reload();
+            }, 200); // Adjust the delay duration as needed
+          },
+          traditional: true,
+        });
+        console.log(item.fields.status + "=" + value);
+        // Additional logic for each button
+      });
+    },
+  };
+});
 
 $.fn.dataTable.ext.buttons.changeStatus = {
   extend: "collection",
   text: "Change Status",
-  buttons: [
-    {
-      text: "Sold",
-      action: function (e, dt, node, config) {
-        var csrftoken = Cookies.get("csrftoken");
-        var selectedRows = dt.rows({ selected: true });
-        let selectedPKs = selectedRows.data().map((row) => row.pk);
-        selectedPKs.each(function (value) {
-          console.log("Sold:" + value);
-        });
-      },
-    },
-  ],
+  buttons: buttonConfigs,
 };
 
 $(document).ready(function () {
@@ -82,6 +106,8 @@ $(document).ready(function () {
           model: $("#modelSelect").val(),
           grade: $("#gradeSelect").val(),
           color: $("#colorSelect").val(),
+          batteryA: $("#battAb").val(),
+          batteryB: $("#battBe").val(),
         });
       },
       dataSrc: "data", // Data property name in the JSON response
@@ -98,6 +124,7 @@ $(document).ready(function () {
       { data: "capacity", orderable: false },
       { data: "color", orderable: false },
       { data: "grade" },
+      { data: "battery", orderable: true },
       { data: "status", orderable: false },
     ],
     lengthMenu: [10, 25, 50], // Define the dropdown menu options for record per page
