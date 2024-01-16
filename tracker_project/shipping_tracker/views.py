@@ -2,7 +2,14 @@ from django.shortcuts import render
 from django.core import serializers
 from django.core.paginator import Paginator
 from django.utils.dateparse import parse_date
-from .models import trackingDb, devices, deviceAttributes, deviceStatus
+from .models import (
+    trackingDb,
+    devices,
+    deviceAttributes,
+    deviceStatus,
+    faults,
+    purchaseOrders,
+)
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView
 from django.db.models import Count
@@ -11,6 +18,7 @@ from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from .scripts import getPCResults, calculateSKU
 from .forms import FilterForm
+from collections import defaultdict
 
 
 def index(request):
@@ -90,27 +98,58 @@ def phoneCheck(request):
     start = request.GET.get("pCStart", None)
     end = request.GET.get("pCEnd", None)
     po = request.GET.get("po", None)
-
+    warehouse = request.GET.get("warehouse", None)
     df = getPCResults(start, end, po)
-    missing_sku = []
-    to_upload = []
+    missing_sku_details = defaultdict(list)
+    missing_po = []
+    uploaded = []
     duplicate_devices = []
 
     for device in df:
+        # Attempt to fetch the PO instance
+        po_instance = None
         try:
-            sku_instance = deviceAttributes.objects.get(sku=calculateSKU(device))
+            po_instance = purchaseOrders.objects.get(po=device["InvoiceNo"])
+        except purchaseOrders.DoesNotExist:
+            missing_po.append(device)
+        try:
+            sku_instance = calculateSKU(device)
+        except ValueError as e:
+            print(e)
+            # Extract attributes
+            model = device.get("Model")
+            capacity = device.get("Memory")
+            color = device.get("Color")
+            grade = device.get("Grade")
+
+            # Increment count in the dictionary
+            missing_sku_details[(model, capacity, color, grade)].append(device)
+
+            continue
+
+        try:
             new_device = devices(
                 imei=device["IMEI"],
                 sku=sku_instance,
-                deviceStatus_id=2,
+                deviceStatus_id=3 if device["Working"] == "Yes" else 2,
                 battery=device["BatteryHealthPercentage"],
+                date_tested=datetime.strptime(
+                    device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
+                ),
+                working=True
+                if device["Working"] == "Yes"
+                else False
+                if device["Working"] == "No"
+                else None,
+                po=po_instance,
+                warehouse_id=warehouse,
             )
             new_device.save()
-            to_upload.append(device["IMEI"])
-
-        except ValueError as e:
-            print(e)
-            missing_sku.append(device)
+            if device["Failed"]:
+                for fault_description in device["Failed"]:
+                    fault = faults(device=new_device, fault=fault_description)
+                    fault.save()
+            uploaded.append(device["IMEI"])
 
         except IntegrityError as e:
             duplicate_devices.append(device["IMEI"])
@@ -118,13 +157,65 @@ def phoneCheck(request):
         except Exception as e:
             print(e)
 
+        grouped_missing_skus = [
+            {
+                "model": key[0],
+                "capacity": key[1],
+                "color": key[2],
+                "grade": key[3],
+                "count": len(devices),
+                "devices": devices,
+            }
+            for key, devices in missing_sku_details.items()
+        ]
+
     context = {
-        "upload": to_upload,
-        "missing": missing_sku,
+        "upload": uploaded,
+        "missing": grouped_missing_skus,
+        "po": missing_po,
         "duplicate": duplicate_devices,
     }
 
     return render(request, context=context, template_name="upload.html")
+
+
+def newSKU(request):
+    if request.method == "POST":
+        model = request.POST.get("model")
+        capacity = request.POST.get("capacity")
+        color = request.POST.get("color")
+        grade = request.POST.get("grade")
+        sku = request.POST.get("sku")
+        devicesUpload = request.POST.getlist("devices")
+        try:
+            new_sku = deviceAttributes(
+                model=model, capacity=capacity, color=color, grade=grade, sku=sku
+            )
+            new_sku.save()
+            message = "SKU added successfully."
+            if devicesUpload:
+                for device in devicesUpload:
+                    upload_device = devices(
+                        imei=device["IMEI"],
+                        sku_id=new_sku,
+                        deviceStatus_id=3 if device["Working"] == "Yes" else 2,
+                        battery=device["BatteryHealthPercentage"],
+                        date_tested=datetime.strptime(
+                            device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
+                        ),
+                        working=True
+                        if device["Working"] == "Yes"
+                        else False
+                        if device["Working"] == "No"
+                        else None,
+                        po=po_instance,
+                        warehouse_id=warehouse,
+                    )
+
+            return JsonResponse({"message": message})
+        except Exception as e:
+            message = "Error adding SKU."
+            return JsonResponse({"message": message, "error": str(e)}, status=500)
 
 
 def inventory(request):

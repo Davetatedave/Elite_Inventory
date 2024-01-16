@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "shipping_tracker",
     "django_htmx",
+    "simple_history",
 ]
 
 MIDDLEWARE = [
@@ -52,16 +53,21 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
 ]
 
 ROOT_URLCONF = "tracker_project.urls"
 
 
-
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": ["./templatetags","./templates", "./templates/snippets", "./templates/shipping_tracker"],
+        "DIRS": [
+            "./templatetags",
+            "./templates",
+            "./templates/snippets",
+            "./templates/shipping_tracker",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
