@@ -5,7 +5,7 @@
 {% endblock title %}
 {% block content %}
     <div class="row my-2">
-        <div class="col-md-4">
+        <div class="col-md-4" id="filter_body" data-filter-data="{{ statuses }}">
             <select class='filter' id="modelSelect" multiple style="width: 100%">
                 {% for model_group in device_attributes.model %}
                     <option value="{{ model_group }}">{{ model_group }}</option>
@@ -17,6 +17,18 @@
             <select class='filter' id="gradeSelect" multiple style="width: 100%">
                 {% for grade in device_attributes.grade %}<option value="{{ grade }}">{{ grade }}</option>{% endfor %}
             </select>
+            <label for="battAb">Battery Above</label>
+            <input type="text"
+                   class="filter"
+                   id="battAb"
+                   name="valueInput"
+                   placeholder="Above">
+            <label for="battBe">Battery Below</label>
+            <input type="text"
+                   class="filter"
+                   id="battBe"
+                   name="valueInput"
+                   placeholder="Below">
         </div>
         <div class="col-md-4"></div>
         <div class="col-md-4">
@@ -31,6 +43,7 @@
                 <th>Capacity</th>
                 <th>Color</th>
                 <th>Grade</th>
+                <th>Battery</th>
                 <th>Status</th>
             </tr>
         </thead>

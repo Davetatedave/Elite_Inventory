@@ -10,9 +10,10 @@ urlpatterns = [
         view=views.deviceDetail.as_view(),
         name="detail",
     ),
-    path("phonecheck/", views.phoneCheck, name="phoneCheck"),
+    path("phoneCheck/", views.phoneCheck, name="phoneCheck"),
     path("inventory/", views.inventory, name="inventory"),
     path("inventory2/", views.inventory2, name="inventory2"),
     path("inventoryajax/", views.inventoryAjax, name="inventoryAjax"),
     path("deletedevices/", views.deleteDevices, name="deleteDevices"),
+    path("updateStatus/", views.updateStatus, name="updateStatus"),
 ]

@@ -139,3 +139,22 @@
   margin-bottom: 10px; /* Custom border */ /* Rounded corners */
   /* Other styles */
 }
+
+.input-dropdown {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.input-dropdown input,
+.input-dropdown select {
+  border: none;
+  margin: 5px;
+  padding: 5px;
+  outline: none;
+}
+
+.input-dropdown input {
+  flex-grow: 1;
+}
