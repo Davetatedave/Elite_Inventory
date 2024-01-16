@@ -96,7 +96,6 @@ def phoneCheck(request):
     to_upload = []
     duplicate_devices = []
 
-    print(df[0])
     for device in df:
         try:
             sku_instance = deviceAttributes.objects.get(sku=calculateSKU(device))
@@ -108,7 +107,7 @@ def phoneCheck(request):
 
         except ValueError as e:
             print(e)
-            missing_sku.append((device["SKUCode"], device["IMEI"]))
+            missing_sku.append(device)
 
         except IntegrityError as e:
             duplicate_devices.append(device["IMEI"])
