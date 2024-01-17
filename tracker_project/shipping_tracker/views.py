@@ -100,6 +100,7 @@ def phoneCheck(request):
     po = request.GET.get("po", None)
     warehouse = request.GET.get("warehouse", None)
     df = getPCResults(start, end, po)
+
     missing_sku_details = defaultdict(list)
     missing_po = []
     uploaded = []

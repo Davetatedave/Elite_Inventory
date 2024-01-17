@@ -45,11 +45,32 @@
              :class="{ 'no-scroll': modalShow }">
             <!-- Header -->
             <div id="header" class="row py-3">
-                <div class="col">
-                    <h1>{{ page_title }}</h1>
+                <div class="col" id="logo">
+                    <i class="bi bi-boxes" style="font-size: 30px; padding-bottom:5px"></i>
+                    <h1>Elite Inventory</h1>
+                </div>
+                <div class="col" id="userButton">
+                    <div class="dropdown" x-data="{open: false}">
+                        <button class="btn btn-secondary bi-person-circle"
+                                type="button"
+                                id="userdropdownMenuButton"
+                                aria-expanded="false"
+                                x-on:click="open = ! open">
+                            {{ user.username }}                       <i class="bi bi-arrow-down"></i>
+                        </button>
+                        <ul x-show="open"
+                            class="dropdownmenu"
+                            aria-labelledby="dropdownMenuButton1">
+                            <li>
+                                <a class="dropdown-item" style="color:white;" href='#'>Logout</a>
+                                <a class="dropdown-item" style="color:white;" href='#'>History</a>
+                                <a class="dropdown-item" style="color:white;" href='#'>Settings</a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-            <div class="row">
+            <div class="row d-flex justify-content-around nowrap" id="pagebody">
                 <!-- Navigation -->
                 <nav class="col-2">
                     <ul class="nav flex-column">
@@ -62,7 +83,8 @@
                     </ul>
                 </nav>
                 <!-- Main Content -->
-                <div class="col-9 border mx-2 p-4 shadow rounded"
+                <div id="mainContent"
+                     class="col-9 border mx-2 p-4 shadow rounded"
                      x-data="{activeTab: 'individual'}">
                     {% block content %}
                     {% endblock content %}

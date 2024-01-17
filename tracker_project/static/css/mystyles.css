@@ -7,6 +7,50 @@
   overflow-y: auto;
 }
 
+#header{
+  display: flex;
+  align-items: center;
+  top: 0;
+  left: 0;
+  width: auto;
+  z-index: 99;
+  padding-top: 28.5px;
+  padding-bottom: 28.5px;
+  background-color: white;
+  box-shadow: rgba(9, 30, 66, 0.25) 0px 4px 8px -2px, rgba(9, 30, 66, 0.08) 0px 0px 0px 1px;
+}
+.dropdownmenu{
+  background-color: #6c757d;
+  position: absolute;
+  top: 40px;
+  border-radius: 5px;
+  margin: 0;
+  text-align: left;
+  list-style: none;
+  padding: 0px 5px;
+}
+#userButton{
+  display: flex;
+  justify-content: flex-end;
+}
+.page{
+  background-color: aliceblue;
+}
+
+#logo{
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+#logo > *{
+  display: inline-block;
+  vertical-align: middle
+}
+#pagebody{
+  padding-top: 10px;
+}
 .float {
   position: fixed;
   top: 20%;
@@ -52,6 +96,10 @@
   overflow: scroll;
   height: inherit;
   padding: 1rem 2rem;
+}
+
+#mainContent {
+background-color: white;
 }
 
 .overlay {

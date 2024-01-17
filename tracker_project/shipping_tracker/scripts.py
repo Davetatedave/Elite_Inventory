@@ -4,7 +4,8 @@ import json
 import datetime
 import pandas as pd
 import math
-from .models import deviceAttributes, devices
+from .models import deviceAttributes, devices, purchaseOrders, faults
+from collections import defaultdict
 
 # This script is used to import devices from the PhoneCheck API
 
@@ -108,3 +109,74 @@ def getWCResults():
             continue
 
     return phonestoadd, missingSKUs
+
+
+def bulkUploadPhones(df, warehouse):
+    missing_sku_details = defaultdict(list)
+    missing_po = []
+    uploaded = []
+    duplicate_devices = []
+
+    for device in df:
+        # Attempt to fetch the PO instance
+        po_instance = None
+        try:
+            po_instance = purchaseOrders.objects.get(po=device["InvoiceNo"])
+        except purchaseOrders.DoesNotExist:
+            missing_po.append(device)
+        try:
+            sku_instance = calculateSKU(device)
+        except ValueError as e:
+            print(e)
+            # Extract attributes
+            model = device.get("Model")
+            capacity = device.get("Memory")
+            color = device.get("Color")
+            grade = device.get("Grade")
+
+            # Increment count in the dictionary
+            missing_sku_details[(model, capacity, color, grade)].append(device)
+
+            continue
+
+        try:
+            new_device = devices(
+                imei=device["IMEI"],
+                sku=sku_instance,
+                deviceStatus_id=3 if device["Working"] == "Yes" else 2,
+                battery=device["BatteryHealthPercentage"],
+                date_tested=datetime.strptime(
+                    device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
+                ),
+                working=True
+                if device["Working"] == "Yes"
+                else False
+                if device["Working"] == "No"
+                else None,
+                po=po_instance,
+                warehouse_id=warehouse,
+            )
+            new_device.save()
+            if device["Failed"]:
+                for fault_description in device["Failed"]:
+                    fault = faults(device=new_device, fault=fault_description)
+                    fault.save()
+            uploaded.append(device["IMEI"])
+
+        except IntegrityError as e:
+            duplicate_devices.append(device["IMEI"])
+
+        except Exception as e:
+            print(e)
+
+        grouped_missing_skus = [
+            {
+                "model": key[0],
+                "capacity": key[1],
+                "color": key[2],
+                "grade": key[3],
+                "count": len(devices),
+                "devices": devices,
+            }
+            for key, devices in missing_sku_details.items()
+        ]
