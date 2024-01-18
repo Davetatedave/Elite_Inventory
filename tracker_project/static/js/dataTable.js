@@ -44,21 +44,17 @@ $.fn.dataTable.ext.buttons.changeStatus = {
   text: "Change Status",
   buttons: buttonConfigs,
 };
+// Function to get the IDs or values of all checked switches
+function getCheckedGroupSwitches() {
+  var grouping = [];
+  $(".form-check-input:checked").each(function () {
+    grouping.push($(this).val());
+  });
+  console.log(grouping);
+  return grouping;
+}
 
-$(document).ready(function () {
-  $("#modelSelect").select2({
-    placeholder: "Select Models",
-    theme: "classic",
-  });
-  $("#colorSelect").select2({
-    placeholder: "Select Colors",
-    theme: "classic",
-  });
-  $("#gradeSelect").select2({
-    placeholder: "Select Grades",
-    theme: "classic",
-  });
-
+function initialiseTable(grouping = getCheckedGroupSwitches()) {
   var invTable = $("#invTable").DataTable({
     order: [],
     dom: "Bfrtip",
@@ -109,7 +105,7 @@ $(document).ready(function () {
           color: $("#colorSelect").val(),
           batteryA: $("#battAb").val(),
           batteryB: $("#battBe").val(),
-          grouping: getCheckedGroupSwitches(),
+          grouping: grouping,
         });
       },
       dataSrc: "data", // Data property name in the JSON response
@@ -120,14 +116,64 @@ $(document).ready(function () {
         render: function (data, type, row, meta) {
           return '<a href="detail/' + row.pk + '">' + data + "</a>";
         },
+        visible: grouping.length === 0,
         orderable: false,
       },
-      { data: "model", orderable: false },
-      { data: "capacity", orderable: false },
-      { data: "color", orderable: false },
-      { data: "grade" },
-      { data: "battery", orderable: true },
-      { data: "status", orderable: false },
+      {
+        data: "model",
+        visible: grouping.includes("model") || grouping.length === 0,
+        orderable: false,
+        render: function (data, type, row) {
+          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+        },
+      },
+      {
+        data: "capacity",
+        visible: grouping.includes("capacity") || grouping.length === 0,
+        orderable: false,
+        render: function (data, type, row) {
+          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+        },
+      },
+      {
+        data: "color",
+        visible: grouping.includes("color") || grouping.length === 0,
+        orderable: false,
+        render: function (data, type, row) {
+          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+        },
+      },
+      {
+        data: "grade",
+        visible: grouping.includes("grade") || grouping.length === 0,
+        render: function (data, type, row) {
+          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+        },
+      },
+      {
+        data: "battery",
+        visible: grouping.length === 0,
+        orderable: true,
+        render: function (data, type, row) {
+          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+        },
+      },
+      {
+        data: "status",
+        visible: grouping.includes("status") || grouping.length === 0,
+        orderable: false,
+        render: function (data, type, row) {
+          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+        },
+      },
+      {
+        data: "count",
+        visible: grouping.length > 0,
+        orderable: true,
+        render: function (data, type, row) {
+          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+        },
+      },
     ],
     lengthMenu: [10, 25, 50], // Define the dropdown menu options for record per page
     pageLength: 10,
@@ -135,6 +181,28 @@ $(document).ready(function () {
     serverSide: true,
     select: true,
   });
+  return invTable;
+}
+
+$(document).ready(function () {
+  $("#modelSelect").select2({
+    placeholder: "Select Models",
+    theme: "classic",
+  });
+  $("#colorSelect").select2({
+    placeholder: "Select Colors",
+    theme: "classic",
+  });
+  $("#gradeSelect").select2({
+    placeholder: "Select Grades",
+    theme: "classic",
+  });
+  $("#statusSelect").select2({
+    placeholder: "Select Statuses",
+    theme: "classic",
+  });
+
+  var invTable = initialiseTable();
 
   // Event listener for filter
   $(".filter").on("change", function () {
@@ -142,21 +210,18 @@ $(document).ready(function () {
     console.log("Status Changed");
     console.log($("#gradeSelect").val());
     console.log($("#modelSelect").val());
-    invTable.ajax.reload();
+    if ($.fn.DataTable.isDataTable("#invTable")) {
+      $("#invTable").DataTable().destroy();
+    }
+    initialiseTable();
   });
-  // Function to get the IDs or values of all checked switches
-  function getCheckedGroupSwitches() {
-    var grouping = [];
-    $(".form-check-input:checked").each(function () {
-      grouping.push($(this).val());
-    });
-    return grouping;
-  }
 
   // Attach a change event listener to the switches
   $(".form-check-input").on("change", function () {
-    var checked = getCheckedGroupSwitches();
-    console.log(checked);
-    invTable.ajax.reload();
+    // Reload DataTable with new grouping
+    if ($.fn.DataTable.isDataTable("#invTable")) {
+      $("#invTable").DataTable().destroy();
+    }
+    initialiseTable();
   });
 });

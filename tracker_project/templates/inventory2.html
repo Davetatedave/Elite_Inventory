@@ -20,6 +20,9 @@
             <select class='filter' id="gradeSelect" multiple style="width: 100%">
                 {% for grade in device_attributes.grade %}<option value="{{ grade }}">{{ grade }}</option>{% endfor %}
             </select>
+            <select class='filter' id="statusSelect" multiple style="width: 100%">
+                {% for status in device_attributes.grade %}<option value="{{ grade }}">{{ grade }}</option>{% endfor %}
+            </select>
             <label for="battAb">Battery Above</label>
             <input type="text"
                    class="filter"
@@ -97,7 +100,7 @@
                     <th>Grade</th>
                     <th>Battery</th>
                     <th>Status</th>
-                    {% comment %} {% if grouping %}<th>Count</th>{% endif %} {% endcomment %}
+                    <th>Count</th>
                 </tr>
             </thead>
             <tbody>

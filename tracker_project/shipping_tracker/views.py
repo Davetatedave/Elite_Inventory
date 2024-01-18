@@ -226,6 +226,9 @@ def inventory(request):
 
     device_attributes = deviceAttributes.objects.all()
 
+    device_stauses = deviceStatus.objects.all()
+    device_statuses = serializers.serialize("json", device_stauses)
+
     if models:
         device_attributes = device_attributes.filter(model=models)
 
@@ -279,7 +282,6 @@ def inventoryAjax(request):
     batteryB = request.GET.get("batteryB", None)
     order = request.GET.get("order[0][column]", None)
     grouping = request.GET.getlist("grouping[]", None)
-    print(grouping)
     phones = devices.objects.select_related("sku").select_related("deviceStatus").all()
 
     # Apply additional filtering based on the search query
@@ -312,22 +314,33 @@ def inventoryAjax(request):
             print(direction)
             phones = phones.order_by(column_order)
 
-    # if grouping:
-    #     # Apply grouping
-    #     phones = phones.values(*grouping).annotate(count=Count("id")).order_by("-count")
+    if grouping != []:
+        # Apply grouping
+        formatted_groupings = [
+            f"deviceStatus__status" if group == "status" else f"sku__{group}"
+            for group in grouping
+        ]
+        print(formatted_groupings)
+        phones = (
+            phones.values(*formatted_groupings)
+            .annotate(count=Count("id"))
+            .order_by("-count")
+        )
 
-    #     # Pagination parameters
-    #     start = int(request.GET.get("start", 0))
-    #     length = int(request.GET.get("length", 10))
+        # Pagination parameters
+        start = int(request.GET.get("start", 0))
+        length = int(request.GET.get("length", 10))
 
-    #     # Creating response data
-    #     data = [
-    #         {
-    #             "model": {group: phone[group] for group in grouping},
-    #             "count": phone["count"],
-    #         }
-    #         for phone in phones[start : start + length]
-    #     ]
+        # Creating response data
+        data = []
+        for phone in phones[start : start + length]:
+            data_entry = {}
+            for formatted_group in formatted_groupings:
+                # Splitting the formatted group name to get the original name
+                original_group = formatted_group.split("__")[-1]
+                data_entry[original_group] = phone.get(formatted_group)
+            data_entry["count"] = phone["count"]
+            data.append(data_entry)
 
     # Apply pagination to the data
     else:
