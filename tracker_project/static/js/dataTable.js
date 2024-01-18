@@ -146,6 +146,7 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
       {
         data: "grade",
         visible: grouping.includes("grade") || grouping.length === 0,
+        orderable: false,
         render: function (data, type, row) {
           return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
         },
