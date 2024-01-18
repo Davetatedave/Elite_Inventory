@@ -1,5 +1,6 @@
 // DataTables
 
+///Available Statuses for Change Status Button
 var statusdata = JSON.parse(
   document.getElementById("filter_body").getAttribute("data-filter-data")
 );
@@ -69,7 +70,7 @@ $(document).ready(function () {
       "changeStatus",
       {
         text: "Delete",
-        action: function (e, dt, node, config) {
+        action: function () {
           if (window.confirm("Really Delete Rows?")) {
             var csrftoken = Cookies.get("csrftoken");
             console.log("csrftoken: " + csrftoken);
@@ -108,6 +109,7 @@ $(document).ready(function () {
           color: $("#colorSelect").val(),
           batteryA: $("#battAb").val(),
           batteryB: $("#battBe").val(),
+          grouping: getCheckedGroupSwitches(),
         });
       },
       dataSrc: "data", // Data property name in the JSON response
@@ -140,6 +142,21 @@ $(document).ready(function () {
     console.log("Status Changed");
     console.log($("#gradeSelect").val());
     console.log($("#modelSelect").val());
+    invTable.ajax.reload();
+  });
+  // Function to get the IDs or values of all checked switches
+  function getCheckedGroupSwitches() {
+    var grouping = [];
+    $(".form-check-input:checked").each(function () {
+      grouping.push($(this).val());
+    });
+    return grouping;
+  }
+
+  // Attach a change event listener to the switches
+  $(".form-check-input").on("change", function () {
+    var checked = getCheckedGroupSwitches();
+    console.log(checked);
     invTable.ajax.reload();
   });
 });

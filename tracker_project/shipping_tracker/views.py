@@ -278,7 +278,8 @@ def inventoryAjax(request):
     batteryA = request.GET.get("batteryA", None)
     batteryB = request.GET.get("batteryB", None)
     order = request.GET.get("order[0][column]", None)
-
+    grouping = request.GET.getlist("grouping[]", None)
+    print(grouping)
     phones = devices.objects.select_related("sku").select_related("deviceStatus").all()
 
     # Apply additional filtering based on the search query
@@ -311,26 +312,48 @@ def inventoryAjax(request):
             print(direction)
             phones = phones.order_by(column_order)
 
+    # if grouping:
+    #     # Apply grouping
+    #     phones = phones.values(*grouping).annotate(count=Count("id")).order_by("-count")
+
+    #     # Pagination parameters
+    #     start = int(request.GET.get("start", 0))
+    #     length = int(request.GET.get("length", 10))
+
+    #     # Creating response data
+    #     data = [
+    #         {
+    #             "model": {group: phone[group] for group in grouping},
+    #             "count": phone["count"],
+    #         }
+    #         for phone in phones[start : start + length]
+    #     ]
+
     # Apply pagination to the data
-    data = [
-        {
-            "pk": device.pk,
-            "imei": device.imei,
-            "model": device.sku.model,
-            "capacity": device.sku.capacity,
-            "color": device.sku.color,
-            "grade": device.sku.grade,
-            "battery": device.battery,
-            "status": device.deviceStatus.status if device.deviceStatus else "Unknown",
-        }
-        for device in phones[start : start + length]
-    ]
+    else:
+        data = [
+            {
+                "pk": device.pk,
+                "imei": device.imei,
+                "model": device.sku.model,
+                "capacity": device.sku.capacity,
+                "color": device.sku.color,
+                "grade": device.sku.grade,
+                "battery": device.battery,
+                "status": device.deviceStatus.status
+                if device.deviceStatus
+                else "Unknown",
+                "count": 1,
+            }
+            for device in phones[start : start + length]
+        ]
 
     # Get the total count of records (for pagination info)
     total_records = phones.count()
 
     response_data = {
         "data": data,
+        "grouping": grouping,
         "recordsTotal": total_records,
         "recordsFiltered": total_records,  # Set this to the filtered count if applicable
     }
