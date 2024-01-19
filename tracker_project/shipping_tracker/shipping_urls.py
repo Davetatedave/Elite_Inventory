@@ -3,7 +3,7 @@ from . import views
 
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    path("", views.index, name="home"),
     path("shipping/", views.shipping, name="shipping"),
     path(
         route="inventory2/detail/<int:pk>/",
@@ -12,8 +12,10 @@ urlpatterns = [
     ),
     path("phoneCheck/", views.phoneCheck, name="phoneCheck"),
     path("inventory/", views.inventory, name="inventory"),
-    path("inventory2/", views.inventory2, name="inventory2"),
+    path("sales/", views.sales, name="sales"),
+    path("listings/", views.listings, name="listings"),
     path("inventoryajax/", views.inventoryAjax, name="inventoryAjax"),
     path("deletedevices/", views.deleteDevices, name="deleteDevices"),
     path("updateStatus/", views.updateStatus, name="updateStatus"),
+    path("BMlistingsajax/", views.BMlistingsajax, name="BMlistingsajax"),
 ]

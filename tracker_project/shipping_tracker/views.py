@@ -219,7 +219,7 @@ def newSKU(request):
             return JsonResponse({"message": message, "error": str(e)}, status=500)
 
 
-def inventory(request):
+def inventoryOLD(request):
     filter_form = FilterForm()
 
     models = request.GET.get("models", None)
@@ -228,6 +228,8 @@ def inventory(request):
 
     device_stauses = deviceStatus.objects.all()
     device_statuses = serializers.serialize("json", device_stauses)
+    breakpoint()
+    print(device_statuses)
 
     if models:
         device_attributes = device_attributes.filter(model=models)
@@ -236,6 +238,7 @@ def inventory(request):
         field.name: set(getattr(obj, field.name) for obj in device_attributes)
         for field in deviceAttributes._meta.fields
     }
+    distinct_values["status"] = set(device_statuses)
 
     context = {
         "device_list": devices.objects.select_related("sku").all(),
@@ -245,11 +248,13 @@ def inventory(request):
     return render(request, context=context, template_name="inventory.html")
 
 
-def inventory2(request):
+def inventory(request):
     models = request.GET.get("models", None)
 
     device_attributes = deviceAttributes.objects.all()
-    statuses = serializers.serialize("json", deviceStatus.objects.all())
+    statuses = deviceStatus.objects.all()
+
+    statusesfortable = serializers.serialize("json", deviceStatus.objects.all())
 
     if models:
         device_attributes = device_attributes.filter(model=models)
@@ -259,11 +264,13 @@ def inventory2(request):
         for field in deviceAttributes._meta.fields
     }
 
+    distinct_values["status"] = statuses = [status.status for status in statuses]
+
     context = {
         "device_attributes": distinct_values,
-        "statuses": statuses,
+        "statuses": statusesfortable,
     }
-    return render(request, context=context, template_name="inventory2.html")
+    return render(request, context=context, template_name="inventory.html")
 
 
 def inventoryAjax(request):
@@ -272,6 +279,7 @@ def inventoryAjax(request):
     length = int(request.GET.get("length", 10))  # Default page size
 
     search_value = request.GET.get("search[value]", None)
+    bulk_search_value = request.GET.getlist("bulk_search_value", None)
 
     # Your data filtering and processing logic here
 
@@ -280,23 +288,60 @@ def inventoryAjax(request):
     colors = request.GET.getlist("color[]", None)
     batteryA = request.GET.get("batteryA", None)
     batteryB = request.GET.get("batteryB", None)
+    status = request.GET.getlist("status[]", None)
     order = request.GET.get("order[0][column]", None)
     grouping = request.GET.getlist("grouping[]", None)
-    phones = devices.objects.select_related("sku").select_related("deviceStatus").all()
+
+    if "Deleted" in status:
+        phones = (
+            devices.all_objects.select_related("sku")
+            .select_related("deviceStatus")
+            .all()
+        )
+    else:
+        phones = (
+            devices.objects.select_related("sku").select_related("deviceStatus").all()
+        )
+
+        # Pagination parameters
+    start = int(request.GET.get("start", 0))
+    length = int(request.GET.get("length", 10))
+    if length == -1:
+        length = phones.count()
 
     # Apply additional filtering based on the search query
     if search_value:
-        # Example: Filter based on the 'imei' field
         phones = phones.filter(imei__icontains=search_value)
+
+    if bulk_search_value != [""]:
+        listofImeis = bulk_search_value[0].splitlines()
+        imeiscleaned = [
+            item
+            for sublist in [i.split(",") for i in listofImeis]
+            for item in sublist
+            if item != ""
+        ]
+        print(imeiscleaned)
+        phones = phones.filter(imei__in=imeiscleaned)
 
     if models:
         phones = phones.filter(sku__model__in=models)
 
+    if colors:
+        phones = phones.filter(sku__color__in=colors)
+
     if grades:
         phones = phones.filter(sku__grade__in=grades)
 
-    if colors:
-        phones = phones.filter(sku__color__in=colors)
+    if status:
+        if "Unknown" in status:
+            phones = phones.filter(deviceStatus__status__in=status) | phones.filter(
+                deviceStatus__isnull=True
+            )
+
+        else:
+            phones = phones.filter(deviceStatus__status__in=status)
+
     if batteryA:
         phones = phones.filter(battery__gte=batteryA)
     if batteryB:
@@ -326,10 +371,6 @@ def inventoryAjax(request):
             .annotate(count=Count("id"))
             .order_by("-count")
         )
-
-        # Pagination parameters
-        start = int(request.GET.get("start", 0))
-        length = int(request.GET.get("length", 10))
 
         # Creating response data
         data = []
@@ -394,12 +435,50 @@ def deleteDevices(request):
     if request.method == "POST":
         selected_pks = request.POST.getlist("pks")
         print(selected_pks)
+
         try:
             # Update the status of devices with the selected PKs
             devicesToDelete = devices.objects.filter(pk__in=selected_pks)
-            devicesToDelete.update(status="Deleted")
+            status = deviceStatus.objects.get(status="Deleted")
+            devicesToDelete.update(deviceStatus=status)
             message = "Devices deleted successfully."
             return JsonResponse({"message": message})
         except Exception as e:
             message = "Error updating devices."
             return JsonResponse({"message": message, "error": str(e)}, status=500)
+
+
+def sales(request):
+    return render(request, template_name="sales.html")
+
+
+def listings(request):
+    return render(request, template_name="listings.html")
+
+
+def BMlistingsajax(request):
+    return JsonResponse(
+        {
+            "draw": 1,
+            "recordsTotal": 100,
+            "recordsFiltered": 50,
+            "data": [
+                {
+                    "pk": 1,
+                    "SKU": "IP12128BAB",
+                    "product_name": "iPhone 12 128GB Black A/B Grade",
+                    "price": "100.00",
+                    "stock_listed": "20",
+                    "stock_available": "22",
+                },
+                {
+                    "pk": 2,
+                    "SKU": "IP12128BBC",
+                    "product_name": "iPhone 12 128GB Black B/C Grade",
+                    "price": "150.00",
+                    "stock_listed": "15",
+                    "stock_available": "18",
+                },
+            ],
+        }
+    )

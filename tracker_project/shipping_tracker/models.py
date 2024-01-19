@@ -40,7 +40,7 @@ class warehouse(models.Model):
 
 class deviceManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().exclude(deviceStatus=0)
+        return super().get_queryset().exclude(deviceStatus__id=1)
 
 
 class deviceStatus(models.Model):
@@ -162,6 +162,7 @@ class devices(models.Model):
     warehouse = models.ForeignKey(
         warehouse, on_delete=models.PROTECT, verbose_name="Warehouse", null=True
     )
+
     history = HistoricalRecords()
     objects = deviceManager()
     all_objects = models.Manager()

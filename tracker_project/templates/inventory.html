@@ -4,100 +4,113 @@
     {{ page_title }}
 {% endblock title %}
 {% block content %}
-    <div class="d-flex flex-row my-2"
-         id="filtersContainer"
-         x-data="{ dropdownShow: false }">
-        <form method="get" action="{% url 'inventory' %}">
-            {% csrf_token %}
-            <div class="form-group">
-                <button for="{{ filter_form.models.id_for_label }}"
-                        class="btn btn-secondary dropdown-toggle"
-                        type="button"
-                        id="columnDropdown"
-                        @click="dropdownShow =! dropdownShow"
-                        x-show="activeTab == 'individual'"
-                        aria-haspopup="true"
-                        aria-expanded="false">Models</button>
-                <div id="modelDopdown"
-                     class="dropdown-men vh-50"
-                     x-show="dropdownShow"
-                     aria-labelledby="columnDropdown"
-                     x-cloak
-                     @click.outside="dropdownShow = false">
-                    <div class="btn btn-sm btn-danger clear-button" data-dropdown="modelDropdown">X</div>
-                    {{ filter_form.models }}
+{% load static %}
+    <div class="row my-2 p-2 border rounded">
+        <div class="col-md-4 d-flex flex-column"
+             id="filter_body"
+             data-filter-data="{{ statuses }}">
+            <h2>Filters</h2>
+            <select class='filter selectHide'
+                    id="modelSelect"
+                    multiple
+                    style="width: 100%">
+                {% for model_group in device_attributes.model %}
+                    <option value="{{ model_group }}">{{ model_group }}</option>
+                {% endfor %}
+            </select>
+            <select class='filter selectHide'
+                    id="colorSelect"
+                    multiple
+                    style="width: 100%">
+                {% for color in device_attributes.color %}<option value="{{ color }}">{{ color }}</option>{% endfor %}
+            </select>
+            <select class='filter selectHide'
+                    id="gradeSelect"
+                    multiple
+                    style="width: 100%">
+                {% for grade in device_attributes.grade %}<option value="{{ grade }}">{{ grade }}</option>{% endfor %}
+            </select>
+            <select class='filter selectHide'
+                    id="statusSelect"
+                    multiple
+                    style="width: 100%">
+                {% for status in  device_attributes.status %}<option value="{{ status }}">{{ status }}</option>{% endfor %}
+            </select>
+            <p>
+                <label for="amount">Battery range:</label>
+                <input class="ranges" type="text" id="amount" readonly>
+            </p>
+            <div id="slider-range"></div>
+        </div>
+        <div class="col-md-4 d-flex flex-column justify-content-between">
+            <h2>Grouping</h2>
+            <div class="flex-fill d-flex justify-content-between flex-column pb-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="modelGroupSwitch"
+                           value="model">
+                    <label class="form-check-label" for="modelGroupSwitch">Model</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="capacityGroupSwitch"
+                           value="capacity">
+                    <label class="form-check-label" for="capacityGroupSwitch">Capacity</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="colorGroupSwitch"
+                           value="color">
+                    <label class="form-check-label" for="colorGroupSwitch">Color</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="gradeGroupSwitch"
+                           value="grade">
+                    <label class="form-check-label" for="gradeGroupSwitch">Grade</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="statusGroupSwitch"
+                           value="status">
+                    <label class="form-check-label" for="statusGroupSwitch">Status</label>
                 </div>
             </div>
-            {% comment %} <div class="form-group">
-                <label for="{{ filter_form.grades.id_for_label }}">Grade:</label>
-                {{ filter_form.grades }}
-            </div>
-            <div class="form-group">
-                <label for="{{ filter_form.capacities.id_for_label }}">Capacity:</label>
-                {{ filter_form.capacities }}
-            </div> {% endcomment %}
-            <button type="submit" class="btn btn-primary">Submit</button>
-        </form>
+        </div>
+        <div class="col-md-4 d-flex flex-column justify-content-between">
+            <h2>Bulk IMEI Lookup</h2>
+            <textarea class="filter flex-fill"
+                      id="bulkImeiInput"
+                      placeholder="Enter IMEIs separated by commas"></textarea>
+        </div>
     </div>
-    {% comment %} Model Select {% endcomment %}
-    {% comment %}
-        <form>
-        <div class="dropdown d-block mx-2" x-data="{ dropdownShow: false }">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="columnDropdown" @click="dropdownShow =! dropdownShow" x-show="activeTab == 'individual'" aria-haspopup="true" aria-expanded="false">Models</button>
-            <div id="filterSelect" class="dropdown-men vh-50" x-show="dropdownShow" aria-labelledby="columnDropdown" x-cloak @click.outside="dropdownShow = false">
-                {% for model in device_attributes.model %}
-                    <div>
-                        <input @click="{{ model }}_show = ! {{ model }}_show" type="checkbox" id="toggle_{{ model }}" checked />
-                        <label for="toggle_{{ model }}">{{ model }}</label>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-        <div class="dropdown d-block mx-2" x-data="{ dropdownShow2: false }">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="columnDropdown" @click="dropdownShow2 =! dropdownShow2" x-show="activeTab == 'individual'" aria-haspopup="true" aria-expanded="false">Grade</button>
-            <div id="filterSelect" class="dropdown-men vh-50" x-show="dropdownShow2" aria-labelledby="columnDropdown" x-cloak @click.outside="dropdownShow2 = false">
-                {% for grade in device_attributes.grade %}
-                    <div>
-                        <input @click="{{ grade }}_show = ! {{ grade }}_show" type="checkbox" id="toggle_{{ grade }}" checked />
-                        <label for="toggle_{{ grade }}">{{ grade }}</label>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-        <div class="dropdown d-block mx-2" x-data="{ dropdownShow3: false }">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="columnDropdown" @click="dropdownShow3 =! dropdownShow3" x-show="activeTab == 'individual'" aria-haspopup="true" aria-expanded="false">Capacity</button>
-            <div id="filterSelect" class="dropdown-men vh-50" x-show="dropdownShow3" aria-labelledby="columnDropdown" x-cloak @click.outside="dropdownShow3 = false">
-                {% for cap in device_attributes.capacity %}
-                    <div>
-                        <input @click="{{ cap }}_show = ! {{ cap }}_show" type="checkbox" id="toggle_{{ cap }}" checked />
-                        <label for="toggle_{{ cap }}">{{ cap }}</label>
-                    </div>
-                {% endfor %}
-            </div>
-            <button class="btn btn-primary">Submit</button>
-        </form>
-        </div>
-    </div> {% endcomment %}
-    <table class="table table-striped table-bordered table-hover">
-        <tr>
-            <th>Select</th>
-            <th>IMEI</th>
-            <th>Model</th>
-            <th>Capacity</th>
-            <th>Color</th>
-            <th>Grade</th>
-        </tr>
-        {% for device in device_list %}
-            <tr>
-                <td>
-                    <input type="checkbox" name="device" value="{{ device.imei }}" />
-                </td>
-                <td>{{ device.imei }}</td>
-                <td>{{ device.sku.model }}</td>
-                <td>{{ device.sku.capacity }}</td>
-                <td>{{ device.sku.color }}</td>
-                <td>{{ device.sku.grade }}</td>
-            </tr>
-        {% endfor %}
-    </table>
+    <div class="row my-2">
+        <table id="invTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>IMEI</th>
+                    <th>Model</th>
+                    <th>Capacity</th>
+                    <th>Color</th>
+                    <th>Grade</th>
+                    <th>Battery</th>
+                    <th>Status</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script src="{% static 'js/inventorydataTable.js' %}"></script>
 {% endblock content %}

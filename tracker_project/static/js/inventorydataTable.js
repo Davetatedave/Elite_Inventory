@@ -54,19 +54,36 @@ function getCheckedGroupSwitches() {
   return grouping;
 }
 
+var batterySlider = $(function () {
+  $("#slider-range").slider({
+    range: true,
+    min: 0,
+    max: 100,
+    values: [80, 100],
+    slide: function (event, ui) {
+      $("#amount").val(ui.values[0] + "-" + ui.values[1]);
+    },
+  });
+  $("#amount").val(
+    $("#slider-range").slider("values", 0) +
+      "-" +
+      $("#slider-range").slider("values", 1)
+  );
+});
+
 function initialiseTable(grouping = getCheckedGroupSwitches()) {
   var invTable = $("#invTable").DataTable({
     order: [],
+    scrollX: true,
     dom: "Bfrtip",
     buttons: [
-      "colvis",
       "pageLength",
       "selectAll",
       "selectNone",
       "changeStatus",
       {
         text: "Delete",
-        action: function () {
+        action: function (e, dt, node, config) {
           if (window.confirm("Really Delete Rows?")) {
             var csrftoken = Cookies.get("csrftoken");
             console.log("csrftoken: " + csrftoken);
@@ -103,8 +120,10 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
           model: $("#modelSelect").val(),
           grade: $("#gradeSelect").val(),
           color: $("#colorSelect").val(),
-          batteryA: $("#battAb").val(),
-          batteryB: $("#battBe").val(),
+          status: $("#statusSelect").val(),
+          batteryA: $("#slider-range").slider("values", 0),
+          batteryB: $("#slider-range").slider("values", 1),
+          bulk_search_value: $("#bulkImeiInput").val(),
           grouping: grouping,
         });
       },
@@ -124,7 +143,7 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         visible: grouping.includes("model") || grouping.length === 0,
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : "Missing"; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {
@@ -132,7 +151,7 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         visible: grouping.includes("capacity") || grouping.length === 0,
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : "Missing"; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {
@@ -140,7 +159,7 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         visible: grouping.includes("color") || grouping.length === 0,
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : "Missing"; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {
@@ -148,7 +167,7 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         visible: grouping.includes("grade") || grouping.length === 0,
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : "Ungraded"; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {
@@ -156,7 +175,7 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         visible: grouping.length === 0,
         orderable: true,
         render: function (data, type, row) {
-          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : "N/A"; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {
@@ -172,11 +191,14 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         visible: grouping.length > 0,
         orderable: true,
         render: function (data, type, row) {
-          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : Null; // Replace 'Not specified' with any default or placeholder text
         },
       },
     ],
-    lengthMenu: [10, 25, 50], // Define the dropdown menu options for record per page
+    lengthMenu: [
+      [10, 25, 50, -1],
+      [10, 25, 50, "All"],
+    ], // Define the dropdown menu options for record per page
     pageLength: 10,
     processing: true,
     serverSide: true,
@@ -208,12 +230,22 @@ $(document).ready(function () {
   // Event listener for filter
   $(".filter").on("change", function () {
     // Reload DataTable with new filter criteria
-    console.log("Status Changed");
-    console.log($("#gradeSelect").val());
-    console.log($("#modelSelect").val());
-    if ($.fn.DataTable.isDataTable("#invTable")) {
-      $("#invTable").DataTable().destroy();
+    if ($(".form-check-input:checked").length > 0) {
+      if ($.fn.DataTable.isDataTable("#invTable")) {
+        $("#invTable").DataTable().destroy();
+        console.log("destroy");
+      }
+      initialiseTable();
+    } else {
+      invTable.ajax.reload();
+      console.log("reload");
     }
+  });
+
+  batterySlider.on("slidechange", function (event, ui) {
+    $("#invTable").DataTable().destroy();
+    console.log("destroy");
+
     initialiseTable();
   });
 
@@ -222,6 +254,7 @@ $(document).ready(function () {
     // Reload DataTable with new grouping
     if ($.fn.DataTable.isDataTable("#invTable")) {
       $("#invTable").DataTable().destroy();
+      console.log("destroy");
     }
     initialiseTable();
   });
