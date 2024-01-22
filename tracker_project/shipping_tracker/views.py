@@ -16,7 +16,7 @@ from django.db.models import Count
 from django.db import IntegrityError
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
-from .scripts import getPCResults, calculateSKU
+from .scripts import getPCResults, calculateSKU, getBMdata
 from .forms import FilterForm
 from collections import defaultdict
 
@@ -457,28 +457,24 @@ def listings(request):
 
 
 def BMlistingsajax(request):
-    return JsonResponse(
+    items = getBMdata()
+    data = [
         {
-            "draw": 1,
-            "recordsTotal": 100,
-            "recordsFiltered": 50,
-            "data": [
-                {
-                    "pk": 1,
-                    "SKU": "IP12128BAB",
-                    "product_name": "iPhone 12 128GB Black A/B Grade",
-                    "price": "100.00",
-                    "stock_listed": "20",
-                    "stock_available": "22",
-                },
-                {
-                    "pk": 2,
-                    "SKU": "IP12128BBC",
-                    "product_name": "iPhone 12 128GB Black B/C Grade",
-                    "price": "150.00",
-                    "stock_listed": "15",
-                    "stock_available": "18",
-                },
-            ],
+            "pk": phone["pk"],
+            "SKU": phone["SKU"],
+            "product_name": phone["product_name"],
+            "buyboxes": phone["buyboxes"],
+            "stock_listed": phone["stock_listed"],
+            "stock_available": phone["stock_available"],
         }
-    )
+        for phone in items
+    ]
+
+    total_records = len(data)
+    response_data = {
+        "data": data,
+        "recordsTotal": total_records,
+        "recordsFiltered": total_records,
+    }
+
+    return JsonResponse(response_data)

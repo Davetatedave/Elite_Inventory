@@ -180,3 +180,32 @@ def bulkUploadPhones(df, warehouse):
             }
             for key, devices in missing_sku_details.items()
         ]
+
+
+def getBMdata():
+    url = "https://www.backmarket.co.uk/ws/listings"
+
+    headers = {
+        "Accept-Language": "en-gb",
+        "Accept": "application/json",
+        "Authorization": "Basic MWZmYWNiZjYyMjkxYWJiYTM3Yjg3MTpCTVQtMWFkYWM0ZDFiY2VmMWI2NjVlODk5NGVmZTAxOWEzOWVlZDE3ZmMyMg==",
+    }
+
+    querystring = {"min_quantity": "1", "page-size": 50}
+
+    response = requests.get(url, headers=headers, params=querystring)
+
+    print(response.json())
+
+    items = [
+        {
+            "pk": 1,
+            "SKU": item["sku"].replace(" - Unlocked", ""),
+            "product_name": item["title"],
+            "buyboxes": "3/12",
+            "stock_listed": item["quantity"],
+            "stock_available": "22",
+        }
+        for item in response.json()["results"]
+    ]
+    return items

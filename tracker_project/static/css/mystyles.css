@@ -1,6 +1,45 @@
 [x-cloak] {
   display: none !important;
 }
+.adjustInput{
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font: 15px/1 'Open Sans', sans-serif;
+  color: #333;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  width: 100%;
+  max-width: 500px;
+  background-color: #ddd;
+  border: none;
+  padding: 10px 11px 11px 11px;
+  border-radius: 3px;
+  box-shadow: none;
+  outline: none;
+  box-sizing: border-box; 
+}
+.adjust{
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adjust > *{
+  margin: 5px;
+}
+.tooltip-custom {
+  display: none;
+  position: absolute;
+  background-color: #fdd;
+  border: 1px solid #fbb;
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 1000;
+  font-size: 0.9rem;
+}
 
 body{
   background-color: aliceblue !important;}
@@ -35,7 +74,6 @@ body{
   display: flex;
   justify-content: flex-end;
 }
-
 
 #logo{
   display: inline-block;
