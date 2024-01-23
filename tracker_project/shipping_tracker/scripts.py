@@ -4,7 +4,7 @@ import json
 import datetime
 import pandas as pd
 import math
-from .models import deviceAttributes, devices, purchaseOrders, faults
+from .models import deviceAttributes, devices, purchaseOrders, faults, BackMarketListing
 from collections import defaultdict
 
 # This script is used to import devices from the PhoneCheck API
@@ -182,30 +182,71 @@ def bulkUploadPhones(df, warehouse):
         ]
 
 
-def getBMdata():
-    url = "https://www.backmarket.co.uk/ws/listings"
-
-    headers = {
+class BackMarketAPI:
+    BASE_URL = "https://www.backmarket.co.uk/ws/listings"
+    HEADERS = {
         "Accept-Language": "en-gb",
         "Accept": "application/json",
-        "Authorization": "Basic MWZmYWNiZjYyMjkxYWJiYTM3Yjg3MTpCTVQtMWFkYWM0ZDFiY2VmMWI2NjVlODk5NGVmZTAxOWEzOWVlZDE3ZmMyMg==",
+        "Authorization": "Basic YjhhYWYxNzNiNGM5OGEzNDZmZDMzMjpCTVQtNTU1NmRlNDk1ZDEyZTc2YWFlMDA5MDY0M2FhODc0MWIyNWVjMzVlMg==",
     }
 
-    querystring = {"min_quantity": "1", "page-size": 50}
-
-    response = requests.get(url, headers=headers, params=querystring)
-
-    print(response.json())
-
-    items = [
-        {
-            "pk": 1,
-            "SKU": item["sku"].replace(" - Unlocked", ""),
-            "product_name": item["title"],
-            "buyboxes": "3/12",
-            "stock_listed": item["quantity"],
-            "stock_available": "22",
+    @classmethod
+    def get_listings(cls, start, page_length):
+        querystring = {
+            "page": 1,
+            "page-size": 50,
+            "publication_state": 2,
         }
-        for item in response.json()["results"]
-    ]
-    return items
+        response = requests.get(
+            cls.BASE_URL, headers=cls.HEADERS, params=querystring
+        ).json()
+
+        items = []
+
+        for listing in response["results"]:
+            if "IP" not in listing["sku"]:
+                continue
+            try:
+                sku = deviceAttributes.objects.get(sku=listing["sku"])
+                instance, created = BackMarketListing.objects.update_or_create(
+                    listing_id=listing["listing_id"],
+                    defaults={
+                        "sku": sku,
+                        "title": listing["title"],
+                        "price": listing["price"],
+                        "min_price": listing["min_price"],
+                        "quantity": listing["quantity"],
+                        "backmarket_id": listing["backmarket_id"],
+                        "product_id": listing["product_id"],
+                        "max_price": listing["max_price"],
+                    },
+                )
+                items.append(instance)
+            except deviceAttributes.DoesNotExist:
+                # Create a temporary BackMarketListing object without saving it to the database
+                temp_instance = BackMarketListing(
+                    sku=None,
+                    title=listing["title"],
+                    price=listing["price"],
+                    min_price=listing["min_price"],
+                    quantity=listing["quantity"],
+                    backmarket_id=listing["backmarket_id"],
+                    product_id=listing["product_id"],
+                    max_price=listing["max_price"],
+                )
+                items.append(temp_instance)
+                pass
+
+        total = len(items)
+
+        return items, total
+
+    @classmethod
+    def get_specific_listing(cls, id, marketplace):
+        url = f"{cls.BASE_URL}/{id}"
+        headers = {
+            **cls.HEADERS,
+            "Accept-Language": marketplace,
+        }
+        response = requests.get(url, headers=headers).json()
+        return response

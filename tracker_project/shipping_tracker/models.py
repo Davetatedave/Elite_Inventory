@@ -168,6 +168,25 @@ class devices(models.Model):
     all_objects = models.Manager()
 
 
+class BackMarketListing(models.Model):
+    listing_id = models.IntegerField(unique=True, primary_key=True)
+    sku = models.ForeignKey(
+        deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU"
+    )
+    title = models.CharField(max_length=255)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    min_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    quantity = models.IntegerField(null=True, blank=True)
+    backmarket_id = models.IntegerField()
+    product_id = models.UUIDField()
+    max_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    history = HistoricalRecords()
+
+
 class faults(models.Model):
     id = models.AutoField(primary_key=True)
     device = models.ForeignKey(devices, on_delete=models.CASCADE)

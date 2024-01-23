@@ -51,7 +51,10 @@ $(document).ready(function () {
     ],
 
     ajax: {
-      url: "/BMlistingsajax/", // Replace with your Django view URL
+      url: "/BMlistingsajax/",
+      data: function (d) {
+        return $.extend({}, d, { macs: $("#macToggle").is(":checked") });
+      }, // Replace with your Django view URL
       dataSrc: "data", // Data property name in the JSON response
     },
     columns: [
@@ -80,14 +83,14 @@ $(document).ready(function () {
         data: "stock_listed",
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : "Missing"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : 0; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {
         data: "stock_available",
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : "Missing"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : 0; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {
@@ -107,17 +110,28 @@ $(document).ready(function () {
     serverSide: true,
     searching: false,
   });
-
   bmTable.on("init.dt", function () {
-    $(".plus")
-      .on("mousedown", function () {
-        let input = $(this).siblings("input");
-        let currentValue = parseInt(input.val(), 10);
-        let stockListed = parseInt(input.data("stock_listed"), 10);
-        let stockAvailable = parseInt(input.data("stock_available"), 10);
-        let max = stockAvailable - stockListed; // Assuming minimum is 0 or another positive number
+    let intervalId;
+    $(document).on("mousedown", ".plus", function () {
+      let input = $(this).siblings("input");
+      let currentValue = parseInt(input.val(), 10);
+      let stockListed = parseInt(input.data("stock_listed"), 10);
+      let stockAvailable = parseInt(input.data("stock_available"), 10);
+      let max = stockAvailable - stockListed; // Assuming minimum is 0 or another positive number
 
-        // Decrement the value on initial mousedown
+      // Decrement the value on initial mousedown
+      if (currentValue < max) {
+        input.val(currentValue + 1);
+      } else {
+        // Stop the continuous decrement when reaching the minimum
+        clearInterval(intervalId);
+        showTooltip(input, "Max Amount");
+      }
+
+      // Set up a continuous decrement while mouse is held down
+      intervalId = setInterval(function () {
+        let currentValue = parseInt(input.val(), 10);
+
         if (currentValue < max) {
           input.val(currentValue + 1);
         } else {
@@ -125,32 +139,31 @@ $(document).ready(function () {
           clearInterval(intervalId);
           showTooltip(input, "Max Amount");
         }
+      }, 100); // Adjust the interval time (in milliseconds) as needed
+    });
+    $(document).on("mouseup", ".plus", function () {
+      clearInterval(intervalId);
+    });
 
-        // Set up a continuous decrement while mouse is held down
-        intervalId = setInterval(function () {
-          let currentValue = parseInt(input.val(), 10);
+    $(document).on("mousedown", ".minus", function () {
+      let input = $(this).siblings("input");
+      let currentValue = parseInt(input.val(), 10);
+      let stockListed = parseInt(input.data("stock_listed"), 10);
+      let min = -stockListed; // Assuming minimum is 0 or another positive number
 
-          if (currentValue < max) {
-            input.val(currentValue + 1);
-          } else {
-            // Stop the continuous decrement when reaching the minimum
-            clearInterval(intervalId);
-            showTooltip(input, "Max Amount");
-          }
-        }, 100); // Adjust the interval time (in milliseconds) as needed
-      })
-      .on("mouseup", function () {
-        clearInterval(intervalId); // Stop the continuous decrement on mouseup
-      });
+      // Decrement the value on initial mousedown
+      if (currentValue > min) {
+        input.val(currentValue - 1);
+      } else {
+        // Stop the continuous decrement when reaching the minimum
+        clearInterval(intervalId);
+        showTooltip(input, "Min Amount");
+      }
 
-    $(".minus")
-      .on("mousedown", function () {
-        let input = $(this).siblings("input");
+      // Set up a continuous decrement while mouse is held down
+      intervalId = setInterval(function () {
         let currentValue = parseInt(input.val(), 10);
-        let stockListed = parseInt(input.data("stock_listed"), 10);
-        let min = -stockListed; // Assuming minimum is 0 or another positive number
 
-        // Decrement the value on initial mousedown
         if (currentValue > min) {
           input.val(currentValue - 1);
         } else {
@@ -158,22 +171,10 @@ $(document).ready(function () {
           clearInterval(intervalId);
           showTooltip(input, "Min Amount");
         }
-
-        // Set up a continuous decrement while mouse is held down
-        intervalId = setInterval(function () {
-          let currentValue = parseInt(input.val(), 10);
-
-          if (currentValue > min) {
-            input.val(currentValue - 1);
-          } else {
-            // Stop the continuous decrement when reaching the minimum
-            clearInterval(intervalId);
-            showTooltip(input, "Min Amount");
-          }
-        }, 100); // Adjust the interval time (in milliseconds) as needed
-      })
-      .on("mouseup", function () {
-        clearInterval(intervalId); // Stop the continuous decrement on mouseup
-      });
+      }, 100); // Adjust the interval time (in milliseconds) as needed
+    });
+    $(document).on("mouseup", ".minus", function () {
+      clearInterval(intervalId);
+    });
   });
 });

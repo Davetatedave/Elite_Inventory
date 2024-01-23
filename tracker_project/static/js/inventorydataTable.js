@@ -12,30 +12,26 @@ var buttonConfigs = statusdata.map(function (item) {
     action: function (e, dt, node, config) {
       var csrftoken = Cookies.get("csrftoken");
       var selectedRows = dt.rows({ selected: true });
-      let selectedPKs = selectedRows.data().map((row) => row.pk);
-      console.log(item.pk);
-      selectedPKs.each(function (value) {
-        $.ajax({
-          url: "/updateStatus/",
-          type: "POST",
-          headers: { "X-CSRFToken": csrftoken },
-          data: {
-            pks: selectedPKs.toArray(),
-            status: item.pk,
-          },
-          success: function (response) {
-            console.log(response.message);
+      var selectedPKs = selectedRows.data().map((row) => row.pk);
+      // Send all selected PKs in a single request
+      $.ajax({
+        url: "/updateStatus/",
+        type: "POST",
+        headers: { "X-CSRFToken": csrftoken },
+        data: {
+          pks: selectedPKs.toArray(),
+          status: item.pk,
+        },
+        success: function (response) {
+          console.log(response.message);
 
-            setTimeout(function () {
-              dt.ajax.reload();
-            }, 200); // Adjust the delay duration as needed
-          },
-          traditional: true,
-        });
-        console.log(item.fields.status + "=" + value);
-        // Additional logic for each button
+          setTimeout(function () {
+            dt.ajax.reload();
+          }, 200); // Adjust the delay duration as needed
+        },
+        traditional: true,
       });
-    },
+    }, // Additional logic for each button
   };
 });
 

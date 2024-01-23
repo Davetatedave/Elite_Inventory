@@ -9,6 +9,7 @@ from .models import (
     deviceStatus,
     faults,
     purchaseOrders,
+    BackMarketListing,
 )
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView
@@ -16,7 +17,7 @@ from django.db.models import Count
 from django.db import IntegrityError
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
-from .scripts import getPCResults, calculateSKU, getBMdata
+from .scripts import getPCResults, calculateSKU, BackMarketAPI as BM
 from .forms import FilterForm
 from collections import defaultdict
 
@@ -457,22 +458,59 @@ def listings(request):
 
 
 def BMlistingsajax(request):
-    items = getBMdata()
-    data = [
-        {
-            "pk": phone["pk"],
-            "SKU": phone["SKU"],
-            "product_name": phone["product_name"],
-            "buyboxes": phone["buyboxes"],
-            "stock_listed": phone["stock_listed"],
-            "stock_available": phone["stock_available"],
+    page_length = int(request.GET.get("length", 10))
+    start = int(request.GET.get("start", 0))
+    listings, total = BM.get_listings(start, page_length)
+
+    groupedStock = (
+        devices.objects.filter(deviceStatus=3)
+        .values("sku")
+        .annotate(count=Count("sku"))
+    )
+    groupedStockDict = {item["sku"]: item["count"] for item in groupedStock}
+    print(groupedStockDict)
+
+    data = []
+
+    for listing in listings:
+        try:
+            sku = listing.sku.sku
+        except:
+            sku = None
+        listing = {
+            "SKU": sku,
+            "product_name": listing.title.replace(" - Unlocked", ""),
+            "buyboxes": "3/12",
+            "stock_listed": listing.quantity,
+            "stock_available": 0,
         }
-        for phone in items
-    ]
+        if sku:
+            listing["stock_available"] = groupedStockDict.get(sku, 0)
+            if sku in groupedStockDict:
+                groupedStockDict.pop(sku)
+        else:
+            listing["stock_available"] = "SKU Mismatch"
+        data.append(listing)
+    nonelisted = BackMarketListing.objects.filter(
+        sku__in=groupedStockDict.keys()
+    ).values("sku", "title")
+    nonelistedDict = {item["sku"]: item["title"] for item in nonelisted}
+
+    for sku, count in groupedStockDict.items():
+        listing = {
+            "SKU": sku,
+            "product_name": nonelistedDict.get(sku, "Missing SKU on BM").replace(
+                " - Unlocked", ""
+            ),
+            "buyboxes": "0",
+            "stock_listed": 0,
+            "stock_available": count,
+        }
+        data.append(listing)
 
     total_records = len(data)
     response_data = {
-        "data": data,
+        "data": data[start : page_length + start],
         "recordsTotal": total_records,
         "recordsFiltered": total_records,
     }
