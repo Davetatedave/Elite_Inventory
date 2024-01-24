@@ -90,7 +90,8 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "eliteinventory",
-        "USER": "postgres",
+        "USER": "eliteinventory",
+        "PASSWORD": "kwcp5647",
         "HOST": "34.122.86.9",  # Use Cloud SQL Proxy address for local testing
         "PORT": "3306",  # Port used by Cloud SQL Proxy
     }
