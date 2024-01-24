@@ -1,6 +1,6 @@
-runtime: python39  # Use the appropriate Python version
+runtime: python39
 
-entrypoint: gunicorn -b :$PORT tracker_project.wsgi  # Replace 'yourproject' with your Django project name
+entrypoint: gunicorn -b :$PORT tracker_project.wsgi  
 
 handlers:
 - url: /static
@@ -10,6 +10,6 @@ handlers:
   script: auto
 
 env_variables:
-  DJANGO_SETTINGS_MODULE: "tracker_project.settings"  # Replace 'yourproject' with your Django project name
+  DJANGO_SETTINGS_MODULE: "tracker_project.cloud_settings"
   BUCKET_NAME: "inv-project-bucket"
 

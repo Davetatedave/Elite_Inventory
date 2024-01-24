@@ -36,3 +36,6 @@ jobs:
     - name: Deploy to Google App Engine 
       run: |
         gcloud app deploy tracker_project/app.yaml
+
+    - name: Run Database Migrations
+      run: gcloud app exec -- python manage.py migrate --noinput
