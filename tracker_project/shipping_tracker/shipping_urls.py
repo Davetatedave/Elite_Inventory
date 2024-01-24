@@ -18,4 +18,5 @@ urlpatterns = [
     path("deletedevices/", views.deleteDevices, name="deleteDevices"),
     path("updateStatus/", views.updateStatus, name="updateStatus"),
     path("BMlistingsajax/", views.BMlistingsajax, name="BMlistingsajax"),
+    path("updateBMquantity/", views.updateBMquantity, name="updateBMquantity"),
 ]

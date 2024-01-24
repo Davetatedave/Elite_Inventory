@@ -184,7 +184,7 @@ class BackMarketListing(models.Model):
     max_price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
     )
-    history = HistoricalRecords()
+    # history = HistoricalRecords()
 
 
 class faults(models.Model):

@@ -3,7 +3,7 @@ let quantityCounter = function (data, type, row) {
 	<button class="minus btn btn-sm btn-dark">-</button>
 	<input readonly class="adjustInput" type="text" value="0" data-stock_listed=${row.stock_listed} data-stock_available=${row.stock_available}>
 	<button class="plus btn btn-sm btn-dark">+</button>
-  <button class="add btn btn-primary">Update</button>
+  <button data-id="${row.listing_id}" class="add btn btn-primary">Update</button>
 </div>`;
 };
 
@@ -73,13 +73,6 @@ $(document).ready(function () {
         },
       },
       {
-        data: "buyboxes",
-        orderable: false,
-        render: function (data, type, row) {
-          return "<a href='/buyboxes/" + row.pk + "'>" + data + "</a>";
-        },
-      },
-      {
         data: "stock_listed",
         orderable: false,
         render: function (data, type, row) {
@@ -144,7 +137,6 @@ $(document).ready(function () {
     $(document).on("mouseup", ".plus", function () {
       clearInterval(intervalId);
     });
-
     $(document).on("mousedown", ".minus", function () {
       let input = $(this).siblings("input");
       let currentValue = parseInt(input.val(), 10);
@@ -175,6 +167,28 @@ $(document).ready(function () {
     });
     $(document).on("mouseup", ".minus", function () {
       clearInterval(intervalId);
+    });
+    $(document).on("click", ".add", function () {
+      console.log("Add clicked");
+      let csrftoken = Cookies.get("csrftoken");
+      let listing_id = $(this).data("id");
+      let input = $(this).siblings("input");
+      let currentValue = parseInt(input.val(), 10);
+      let stockListed = parseInt(input.data("stock_listed"), 10);
+      let data = {
+        listing_id: listing_id,
+        quantity: currentValue + stockListed,
+      };
+      $.ajax({
+        type: "POST",
+        url: "/updateBMquantity/",
+        headers: { "X-CSRFToken": csrftoken },
+        data: data,
+        success: function (result) {
+          console.log(result);
+          bmTable.ajax.reload();
+        },
+      });
     });
   });
 });

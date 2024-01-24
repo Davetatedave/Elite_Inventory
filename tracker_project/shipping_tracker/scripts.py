@@ -7,6 +7,7 @@ import math
 from .models import deviceAttributes, devices, purchaseOrders, faults, BackMarketListing
 from collections import defaultdict
 
+
 # This script is used to import devices from the PhoneCheck API
 
 
@@ -242,11 +243,22 @@ class BackMarketAPI:
         return items, total
 
     @classmethod
-    def get_specific_listing(cls, id, marketplace):
+    def get_listing_by_id(cls, id, marketplace):
         url = f"{cls.BASE_URL}/{id}"
         headers = {
             **cls.HEADERS,
             "Accept-Language": marketplace,
         }
         response = requests.get(url, headers=headers).json()
+        return response
+
+    @classmethod
+    def update_listing(cls, listing_id, quantity):
+        url = f"{cls.BASE_URL}/{listing_id}"
+        headers = {
+            **cls.HEADERS,
+            "Accept-Language": "en-gb",
+        }
+        data = {"quantity": quantity}
+        response = requests.post(url, headers=headers, json=data).json()
         return response

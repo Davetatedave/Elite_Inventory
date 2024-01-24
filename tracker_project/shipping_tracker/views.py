@@ -20,6 +20,8 @@ from django.template.loader import render_to_string
 from .scripts import getPCResults, calculateSKU, BackMarketAPI as BM
 from .forms import FilterForm
 from collections import defaultdict
+from django.dispatch import receiver
+from django.db.models.signals import post_save
 
 
 def index(request):
@@ -454,6 +456,10 @@ def sales(request):
 
 
 def listings(request):
+    @receiver(post_save, sender=BackMarketListing)
+    def test(sender, instance, **kwargs):
+        print(sender, instance)
+
     return render(request, template_name="listings.html")
 
 
@@ -479,8 +485,8 @@ def BMlistingsajax(request):
             sku = None
         listing = {
             "SKU": sku,
+            "listing_id": listing.listing_id,
             "product_name": listing.title.replace(" - Unlocked", ""),
-            "buyboxes": "3/12",
             "stock_listed": listing.quantity,
             "stock_available": 0,
         }
@@ -493,16 +499,18 @@ def BMlistingsajax(request):
         data.append(listing)
     nonelisted = BackMarketListing.objects.filter(
         sku__in=groupedStockDict.keys()
-    ).values("sku", "title")
-    nonelistedDict = {item["sku"]: item["title"] for item in nonelisted}
+    ).values("sku", "title", "listing_id")
+    nonelistedDict = {
+        item["sku"]: (item["title"], item["listing_id"]) for item in nonelisted
+    }
 
     for sku, count in groupedStockDict.items():
         listing = {
             "SKU": sku,
-            "product_name": nonelistedDict.get(sku, "Missing SKU on BM").replace(
+            "listing_id": nonelistedDict.get(sku, "Missing SKU on BM")[1],
+            "product_name": nonelistedDict.get(sku, "Missing SKU on BM")[0].replace(
                 " - Unlocked", ""
             ),
-            "buyboxes": "0",
             "stock_listed": 0,
             "stock_available": count,
         }
@@ -516,3 +524,17 @@ def BMlistingsajax(request):
     }
 
     return JsonResponse(response_data)
+
+
+def updateBMquantity(request):
+    if request.method == "POST":
+        listing_id = request.POST.get("listing_id")
+        quantity = request.POST.get("quantity")
+        try:
+            response = BM.update_listing(listing_id, quantity)
+            print(response)
+            message = "Quantity updated successfully."
+            return JsonResponse({"message": message})
+        except Exception as e:
+            message = "Error updating quantity."
+            return JsonResponse({"message": message, "error": str(e)}, status=500)
