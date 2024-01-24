@@ -88,12 +88,12 @@ WSGI_APPLICATION = "tracker_project.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": "django.db.backends.postgresql",
+        "HOST": "/cloudsql/elite-innovations-cloud:us-central1:eliteinventory",
         "NAME": "eliteinventory",
         "USER": "eliteinventory",
         "PASSWORD": "kwcp5647",
-        "HOST": "34.122.86.9",  # Use Cloud SQL Proxy address for local testing
-        "PORT": "3306",  # Port used by Cloud SQL Proxy
+        "PORT": "5432",
     }
 }
 
@@ -132,8 +132,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 # STATIC_ROOT is not used in the same way on Google App Engine
 
 # Default primary key field type
