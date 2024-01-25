@@ -35,7 +35,7 @@ class warehouse(models.Model):
     name = models.CharField(
         max_length=20, primary_key=True, verbose_name="Warehouse Name"
     )
-    address = models.CharField(max_length=20, verbose_name="Address")
+    address = models.CharField(max_length=20, verbose_name="Address", null=True)
 
 
 class deviceManager(models.Manager):

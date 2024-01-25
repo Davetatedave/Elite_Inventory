@@ -4,51 +4,157 @@ import json
 import datetime
 import pandas as pd
 import math
-from .models import deviceAttributes, devices, purchaseOrders, faults, BackMarketListing
+from .models import (
+    deviceAttributes,
+    devices,
+    purchaseOrders,
+    faults,
+    BackMarketListing,
+    warehouse,
+)
 from collections import defaultdict
-
+from django.db import IntegrityError
 
 # This script is used to import devices from the PhoneCheck API
 
 
-def getPCResults(date_start=None, date_finish=None, po_number=None):
-    td = datetime.datetime.today()
-    today = td.strftime("%Y-%m-%d")
-    if date_start:
-        date = {"startdate": str(date_start), "enddate": today}
-        if date_finish:
-            date["enddate"] = str(date_finish)
-    else:
-        date = {"Date": today}
-    reqUrl = "https://clientapiv2.phonecheck.com/cloud/CloudDB/v2/GetAllDevices/"
+class PhoneCheckAPI:
+    BASE_URL = "https://clientapiv2.phonecheck.com/cloud/CloudDB"
+    INFO = {
+        "Apikey": "76d9b060-3417-475c-881c-7403463a0f2e",
+        "Username": "elite2",
+    }
 
-    headersList = {"Content-Type": "application/json"}
+    @classmethod
+    def getAll(cls, date_start=None, date_finish=None, po_number=None):
+        td = datetime.datetime.today()
+        today = td.strftime("%Y-%m-%d")
+        if date_start:
+            date = {"startdate": str(date_start), "enddate": today}
+            if date_finish:
+                date["enddate"] = str(date_finish)
+        else:
+            date = {"Date": today}
+        reqUrl = f"{cls.BASE_URL}/v2/GetAllDevices/"
 
-    payload = json.dumps(
-        {
-            "Apikey": "76d9b060-3417-475c-881c-7403463a0f2e",
-            "Username": "elite2",
-            **date,
-            "Invoiceno": po_number,
-        }
-    )
+        headersList = {"Content-Type": "application/json"}
 
-    response = requests.request(
-        "POST", reqUrl, data=payload, headers=headersList
-    ).json()
-    df = response[1:]
+        payload = json.dumps(
+            {
+                **cls.INFO,
+                **date,
+                "Invoiceno": po_number,
+            }
+        )
 
-    if response[0]["numOfRecords"] > 500:
-        for i in range(math.ceil(response[0]["numOfRecords"] / 500) - 1):
-            payload["offset"] = 500 * (i + 1)
+        response = requests.request(
+            "POST", reqUrl, data=payload, headers=headersList
+        ).json()
+        df = response[1:]
 
-            response2 = requests.request(
-                "POST", reqUrl, data=payload, headers=headersList
-            ).json()[1]
-            newDf = pd.DataFrame(response2[1:])
-            df = pd.concat([df, newDf])
+        if response[0]["numOfRecords"] > 500:
+            for i in range(math.ceil(response[0]["numOfRecords"] / 500) - 1):
+                payload["offset"] = 500 * (i + 1)
 
-    return df
+                response2 = requests.request(
+                    "POST", reqUrl, data=payload, headers=headersList
+                ).json()[1]
+                newDf = pd.DataFrame(response2[1:])
+                df = pd.concat([df, newDf])
+
+        return df
+
+    @classmethod
+    def getBulkIMEI(cls, imeis):
+        reqUrl = f"{cls.BASE_URL}/getDeviceInfoforBulkIMEI"
+
+        headersList = {"Content-Type": "application/json"}
+
+        payload = json.dumps(
+            {
+                **cls.INFO,
+                "IMEI": imeis,
+            }
+        )
+
+        response = requests.request(
+            "POST", reqUrl, data=payload, headers=headersList
+        ).json()
+        # TODO: SORT OUT THIS RESPONSE HANDLER
+        return pd.DataFrame(response.values())
+
+    @classmethod
+    def addToDB(cls, df, wh="Belfast"):
+        missing_sku_details = defaultdict(list)
+        missing_po = []
+        uploaded = []
+        duplicate_devices = []
+        print(df)
+        breakpoint()
+        for device in df:
+            # Attempt to fetch the PO instance
+            po_instance = None
+            whInstance = warehouse.objects.get_or_create(name=wh)
+            try:
+                po_instance = purchaseOrders.objects.get(po=device["InvoiceNo"])
+            except purchaseOrders.DoesNotExist:
+                missing_po.append(device)
+            try:
+                sku_instance = calculateSKU(device)
+            except ValueError as e:
+                print(e)
+                # Extract attributes
+                model = device.get("Model")
+                capacity = device.get("Memory")
+                color = device.get("Color")
+                grade = device.get("Grade")
+
+                # Increment count in the dictionary
+                missing_sku_details[(model, capacity, color, grade)].append(device)
+
+                continue
+
+            try:
+                new_device = devices(
+                    imei=device["IMEI"],
+                    sku=sku_instance,
+                    deviceStatus_id=3 if device["Working"] == "Yes" else 2,
+                    battery=device["BatteryHealthPercentage"],
+                    date_tested=datetime.strptime(
+                        device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
+                    ),
+                    working=True
+                    if device["Working"] == "Yes"
+                    else False
+                    if device["Working"] == "No"
+                    else None,
+                    po=po_instance,
+                    warehouse=whInstance,
+                )
+                new_device.save()
+                if device["Failed"]:
+                    for fault_description in device["Failed"]:
+                        fault = faults(device=new_device, fault=fault_description)
+                        fault.save()
+                uploaded.append(device["IMEI"])
+
+            except IntegrityError as e:
+                duplicate_devices.append(device["IMEI"])
+
+            except Exception as e:
+                print(e)
+
+            grouped_missing_skus = [
+                {
+                    "model": key[0],
+                    "capacity": key[1],
+                    "color": key[2],
+                    "grade": key[3],
+                    "count": len(devices),
+                    "devices": devices,
+                }
+                for key, devices in missing_sku_details.items()
+            ]
 
 
 def calculateSKU(phoneData):

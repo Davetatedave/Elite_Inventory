@@ -27,6 +27,29 @@
   justify-content: space-between;
 }
 
+.vl {
+  border-left: 1px solid black;
+  height: auto;
+}
+
+#bulkImeiInput{
+  min-height: fit-content;
+}
+/* 
+.poselect{
+  display: block;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #212529;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+} */
+
+.logo_icon{font-size: 30px; padding-bottom:5px}
+
 .adjust > *{
   margin: 5px;
 }
@@ -41,7 +64,8 @@
   font-size: 0.9rem;
 }
 
-body{
+body {
+  min-height: 100vh;
   background-color: aliceblue !important;}
 #filterSelect{
   max-height: 50vh;

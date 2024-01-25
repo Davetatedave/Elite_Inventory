@@ -14,10 +14,9 @@ from .models import (
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView
 from django.db.models import Count
-from django.db import IntegrityError
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
-from .scripts import getPCResults, calculateSKU, BackMarketAPI as BM
+from .scripts import PhoneCheckAPI as PC, calculateSKU, BackMarketAPI as BM
 from .forms import FilterForm
 from collections import defaultdict
 from django.dispatch import receiver
@@ -101,77 +100,12 @@ def phoneCheck(request):
     start = request.GET.get("pCStart", None)
     end = request.GET.get("pCEnd", None)
     po = request.GET.get("po", None)
-    warehouse = request.GET.get("warehouse", None)
-    df = getPCResults(start, end, po)
+    warehouse = request.GET.get("warehouse", "Belfast")
+    df = PC.getAll(start, end, po)
 
-    missing_sku_details = defaultdict(list)
-    missing_po = []
-    uploaded = []
-    duplicate_devices = []
-
-    for device in df:
-        # Attempt to fetch the PO instance
-        po_instance = None
-        try:
-            po_instance = purchaseOrders.objects.get(po=device["InvoiceNo"])
-        except purchaseOrders.DoesNotExist:
-            missing_po.append(device)
-        try:
-            sku_instance = calculateSKU(device)
-        except ValueError as e:
-            print(e)
-            # Extract attributes
-            model = device.get("Model")
-            capacity = device.get("Memory")
-            color = device.get("Color")
-            grade = device.get("Grade")
-
-            # Increment count in the dictionary
-            missing_sku_details[(model, capacity, color, grade)].append(device)
-
-            continue
-
-        try:
-            new_device = devices(
-                imei=device["IMEI"],
-                sku=sku_instance,
-                deviceStatus_id=3 if device["Working"] == "Yes" else 2,
-                battery=device["BatteryHealthPercentage"],
-                date_tested=datetime.strptime(
-                    device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
-                ),
-                working=True
-                if device["Working"] == "Yes"
-                else False
-                if device["Working"] == "No"
-                else None,
-                po=po_instance,
-                warehouse_id=warehouse,
-            )
-            new_device.save()
-            if device["Failed"]:
-                for fault_description in device["Failed"]:
-                    fault = faults(device=new_device, fault=fault_description)
-                    fault.save()
-            uploaded.append(device["IMEI"])
-
-        except IntegrityError as e:
-            duplicate_devices.append(device["IMEI"])
-
-        except Exception as e:
-            print(e)
-
-        grouped_missing_skus = [
-            {
-                "model": key[0],
-                "capacity": key[1],
-                "color": key[2],
-                "grade": key[3],
-                "count": len(devices),
-                "devices": devices,
-            }
-            for key, devices in missing_sku_details.items()
-        ]
+    uploaded, grouped_missing_skus, missing_po, duplicate_devices = PC.addToDB(
+        df, warehouse
+    )
 
     context = {
         "upload": uploaded,
@@ -220,6 +154,10 @@ def newSKU(request):
         except Exception as e:
             message = "Error adding SKU."
             return JsonResponse({"message": message, "error": str(e)}, status=500)
+
+
+def addStock(request):
+    return render(request, template_name="add_stock.html")
 
 
 def inventoryOLD(request):
@@ -538,3 +476,36 @@ def updateBMquantity(request):
         except Exception as e:
             message = "Error updating quantity."
             return JsonResponse({"message": message, "error": str(e)}, status=500)
+
+
+def addStockImeis(request):
+    if request.method == "POST":
+        imeis = request.POST.getlist("imeis")
+
+        # Replace \r\n with \n, then join and split by newlines
+        imeis_string = "\n".join(imeis).replace("\r\n", "\n")
+        imeis_lines = imeis_string.splitlines()
+
+        # Flatten the list, split by commas, and remove any empty entries or extra spaces
+        imeiscleaned = [
+            item.strip()  # Remove any leading/trailing whitespace
+            for sublist in [line.split(",") for line in imeis_lines]
+            for item in sublist
+            if item.strip() != ""  # Ensure the item is not empty after stripping
+        ]
+
+        # Join the cleaned IMEIs into a single string separated by commas
+        imeis_string = ",".join(imeiscleaned)
+
+        df = PC.getBulkIMEI(imeis_string)
+
+        uploaded, grouped_missing_skus, missing_po, duplicate_devices = PC.addToDB(df)
+
+        context = {
+            "upload": uploaded,
+            "missing": grouped_missing_skus,
+            "po": missing_po,
+            "duplicate": duplicate_devices,
+        }
+
+    return HttpResponse(context)
