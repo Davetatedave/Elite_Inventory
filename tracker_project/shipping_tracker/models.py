@@ -24,7 +24,7 @@ class trackingDb(models.Model):
 class deviceAttributes(models.Model):
     sku = models.CharField(max_length=20, primary_key=True, verbose_name="SKU")
     manufacturer = models.CharField(max_length=20, verbose_name="Manufacturer")
-    model = models.CharField(max_length=20, verbose_name="Model")
+    model = models.CharField(max_length=40, verbose_name="Model")
     color = models.CharField(max_length=20, verbose_name="Color")
     capacity = models.CharField(max_length=20, verbose_name="Capacity")
     carrier = models.CharField(max_length=20, verbose_name="Carrier", blank=True)
@@ -138,7 +138,7 @@ class salesOrderItems(models.Model):
 
 
 class devices(models.Model):
-    imei = models.IntegerField(unique=True, verbose_name="IMEI")
+    imei = models.BigIntegerField(unique=True, verbose_name="IMEI")
     sku = models.ForeignKey(
         deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU"
     )

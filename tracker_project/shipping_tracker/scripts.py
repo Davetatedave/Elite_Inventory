@@ -80,7 +80,7 @@ class PhoneCheckAPI:
         response = requests.request(
             "POST", reqUrl, data=payload, headers=headersList
         ).json()
-        # TODO: SORT OUT THIS RESPONSE HANDLER
+        df = pd.DataFrame(response.values())
         return pd.DataFrame(response.values())
 
     @classmethod
@@ -89,12 +89,10 @@ class PhoneCheckAPI:
         missing_po = []
         uploaded = []
         duplicate_devices = []
-        print(df)
-        breakpoint()
-        for device in df:
+        for _, device in df.iterrows():
             # Attempt to fetch the PO instance
             po_instance = None
-            whInstance = warehouse.objects.get_or_create(name=wh)
+            whInstance, created = warehouse.objects.get_or_create(name=wh)
             try:
                 po_instance = purchaseOrders.objects.get(po=device["InvoiceNo"])
             except purchaseOrders.DoesNotExist:
@@ -113,14 +111,13 @@ class PhoneCheckAPI:
                 missing_sku_details[(model, capacity, color, grade)].append(device)
 
                 continue
-
             try:
                 new_device = devices(
                     imei=device["IMEI"],
                     sku=sku_instance,
                     deviceStatus_id=3 if device["Working"] == "Yes" else 2,
                     battery=device["BatteryHealthPercentage"],
-                    date_tested=datetime.strptime(
+                    date_tested=datetime.datetime.strptime(
                         device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
                     ),
                     working=True
@@ -155,6 +152,93 @@ class PhoneCheckAPI:
                 }
                 for key, devices in missing_sku_details.items()
             ]
+        return uploaded, grouped_missing_skus, missing_po, duplicate_devices
+
+
+class BackMarketAPI:
+    BASE_URL = "https://www.backmarket.co.uk/ws/listings"
+    HEADERS = {
+        "Accept-Language": "en-gb",
+        "Accept": "application/json",
+        "Authorization": "Basic YjhhYWYxNzNiNGM5OGEzNDZmZDMzMjpCTVQtNTU1NmRlNDk1ZDEyZTc2YWFlMDA5MDY0M2FhODc0MWIyNWVjMzVlMg==",
+    }
+
+    @classmethod
+    def get_listings(cls, start, page_length):
+        results = []
+        querystring = {
+            "page": 1,
+            "page-size": 50,
+            "publication_state": 2,
+        }
+        response = requests.get(
+            cls.BASE_URL, headers=cls.HEADERS, params=querystring
+        ).json()
+        results.extend(response["results"])
+        next = response.get("next", None)
+        while next:
+            response = requests.get(next, headers=cls.HEADERS).json()
+            results.extend(response["results"])
+            next = response.get("next", None)
+        items = []
+        for listing in results:
+            if "IP" not in listing["sku"]:
+                continue
+            try:
+                sku = deviceAttributes.objects.get(sku=listing["sku"])
+                instance, created = BackMarketListing.objects.update_or_create(
+                    listing_id=listing["listing_id"],
+                    defaults={
+                        "sku": sku,
+                        "title": listing["title"],
+                        "price": listing["price"],
+                        "min_price": listing["min_price"],
+                        "quantity": listing["quantity"],
+                        "backmarket_id": listing["backmarket_id"],
+                        "product_id": listing["product_id"],
+                        "max_price": listing["max_price"],
+                    },
+                )
+                items.append(instance)
+            except deviceAttributes.DoesNotExist:
+                # Create a temporary BackMarketListing object without saving it to the database
+                temp_instance = BackMarketListing(
+                    sku=None,
+                    title=listing["title"],
+                    price=listing["price"],
+                    min_price=listing["min_price"],
+                    quantity=listing["quantity"],
+                    backmarket_id=listing["backmarket_id"],
+                    product_id=listing["product_id"],
+                    max_price=listing["max_price"],
+                )
+                items.append(temp_instance)
+                pass
+
+        total = len(items)
+
+        return items, total
+
+    @classmethod
+    def get_listing_by_id(cls, id, marketplace):
+        url = f"{cls.BASE_URL}/{id}"
+        headers = {
+            **cls.HEADERS,
+            "Accept-Language": marketplace,
+        }
+        response = requests.get(url, headers=headers).json()
+        return response
+
+    @classmethod
+    def update_listing(cls, listing_id, quantity):
+        url = f"{cls.BASE_URL}/{listing_id}"
+        headers = {
+            **cls.HEADERS,
+            "Accept-Language": "en-gb",
+        }
+        data = {"quantity": quantity}
+        response = requests.post(url, headers=headers, json=data).json()
+        return response
 
 
 def calculateSKU(phoneData):
@@ -287,84 +371,3 @@ def bulkUploadPhones(df, warehouse):
             }
             for key, devices in missing_sku_details.items()
         ]
-
-
-class BackMarketAPI:
-    BASE_URL = "https://www.backmarket.co.uk/ws/listings"
-    HEADERS = {
-        "Accept-Language": "en-gb",
-        "Accept": "application/json",
-        "Authorization": "Basic YjhhYWYxNzNiNGM5OGEzNDZmZDMzMjpCTVQtNTU1NmRlNDk1ZDEyZTc2YWFlMDA5MDY0M2FhODc0MWIyNWVjMzVlMg==",
-    }
-
-    @classmethod
-    def get_listings(cls, start, page_length):
-        querystring = {
-            "page": 1,
-            "page-size": 50,
-            "publication_state": 2,
-        }
-        response = requests.get(
-            cls.BASE_URL, headers=cls.HEADERS, params=querystring
-        ).json()
-
-        items = []
-
-        for listing in response["results"]:
-            if "IP" not in listing["sku"]:
-                continue
-            try:
-                sku = deviceAttributes.objects.get(sku=listing["sku"])
-                instance, created = BackMarketListing.objects.update_or_create(
-                    listing_id=listing["listing_id"],
-                    defaults={
-                        "sku": sku,
-                        "title": listing["title"],
-                        "price": listing["price"],
-                        "min_price": listing["min_price"],
-                        "quantity": listing["quantity"],
-                        "backmarket_id": listing["backmarket_id"],
-                        "product_id": listing["product_id"],
-                        "max_price": listing["max_price"],
-                    },
-                )
-                items.append(instance)
-            except deviceAttributes.DoesNotExist:
-                # Create a temporary BackMarketListing object without saving it to the database
-                temp_instance = BackMarketListing(
-                    sku=None,
-                    title=listing["title"],
-                    price=listing["price"],
-                    min_price=listing["min_price"],
-                    quantity=listing["quantity"],
-                    backmarket_id=listing["backmarket_id"],
-                    product_id=listing["product_id"],
-                    max_price=listing["max_price"],
-                )
-                items.append(temp_instance)
-                pass
-
-        total = len(items)
-
-        return items, total
-
-    @classmethod
-    def get_listing_by_id(cls, id, marketplace):
-        url = f"{cls.BASE_URL}/{id}"
-        headers = {
-            **cls.HEADERS,
-            "Accept-Language": marketplace,
-        }
-        response = requests.get(url, headers=headers).json()
-        return response
-
-    @classmethod
-    def update_listing(cls, listing_id, quantity):
-        url = f"{cls.BASE_URL}/{listing_id}"
-        headers = {
-            **cls.HEADERS,
-            "Accept-Language": "en-gb",
-        }
-        data = {"quantity": quantity}
-        response = requests.post(url, headers=headers, json=data).json()
-        return response

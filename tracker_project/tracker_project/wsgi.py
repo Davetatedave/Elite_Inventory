@@ -11,6 +11,11 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tracker_project.settings")
+env = os.getenv("GAE_VERSION", "local")
+
+if env != "local":
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tracker_project.cloud_settings")
+else:
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tracker_project.settings")
 
 application = get_wsgi_application()

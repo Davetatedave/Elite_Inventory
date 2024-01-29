@@ -90,7 +90,7 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "HOST": "/cloudsql/elite-innovations-cloud:us-central1:eliteinventory",
-        "NAME": "eliteinventory",
+        "NAME": "inventorydb",
         "USER": "eliteinventory",
         "PASSWORD": "kwcp5647",
         "PORT": "5432",

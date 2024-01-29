@@ -11,20 +11,26 @@ django.setup()
 
 from shipping_tracker.models import deviceAttributes
 
-deviceAttributes.objects.all().delete()
-
-with open('../skusntha.csv', newline='') as csvfile:
+with open("../skusntha.csv", newline="") as csvfile:
     reader = csv.DictReader(csvfile)
-    added=0
-    count=0
+    added = 0
+    count = 0
     device_count = deviceAttributes.objects.count()
-    print(f'Total devices: {device_count}')
+    print(f"Total devices: {device_count}")
     for row in reader:
-        count+=1
+        count += 1
         try:
-            deviceAttributes.objects.create(sku =row['SKU'],manufacturer='Apple',model=row['Model'],color=row['Color'],capacity=row['Size'],carrier='None',grade=row['Condition'])
-            added+=1
+            deviceAttributes.objects.create(
+                sku=row["SKU"],
+                manufacturer="Apple",
+                model=row["Model"],
+                color=row["Color"],
+                capacity=row["Size"],
+                carrier="None",
+                grade=row["Condition"],
+            )
+            added += 1
         except Exception as e:
             print(e)
 
-    print(f'Devices Added:{added}/{count}')
+    print(f"Devices Added:{added}/{count}")

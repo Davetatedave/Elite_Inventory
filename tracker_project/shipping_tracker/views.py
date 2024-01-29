@@ -17,7 +17,6 @@ from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from .scripts import PhoneCheckAPI as PC, calculateSKU, BackMarketAPI as BM
-from .forms import FilterForm
 from collections import defaultdict
 from django.dispatch import receiver
 from django.db.models.signals import post_save
@@ -158,35 +157,6 @@ def newSKU(request):
 
 def addStock(request):
     return render(request, template_name="add_stock.html")
-
-
-def inventoryOLD(request):
-    filter_form = FilterForm()
-
-    models = request.GET.get("models", None)
-
-    device_attributes = deviceAttributes.objects.all()
-
-    device_stauses = deviceStatus.objects.all()
-    device_statuses = serializers.serialize("json", device_stauses)
-    breakpoint()
-    print(device_statuses)
-
-    if models:
-        device_attributes = device_attributes.filter(model=models)
-
-    distinct_values = {
-        field.name: set(getattr(obj, field.name) for obj in device_attributes)
-        for field in deviceAttributes._meta.fields
-    }
-    distinct_values["status"] = set(device_statuses)
-
-    context = {
-        "device_list": devices.objects.select_related("sku").all(),
-        "device_attributes": distinct_values,
-        "filter_form": filter_form,
-    }
-    return render(request, context=context, template_name="inventory.html")
 
 
 def inventory(request):
@@ -394,10 +364,6 @@ def sales(request):
 
 
 def listings(request):
-    @receiver(post_save, sender=BackMarketListing)
-    def test(sender, instance, **kwargs):
-        print(sender, instance)
-
     return render(request, template_name="listings.html")
 
 
@@ -407,7 +373,7 @@ def BMlistingsajax(request):
     listings, total = BM.get_listings(start, page_length)
 
     groupedStock = (
-        devices.objects.filter(deviceStatus=3)
+        devices.objects.filter(deviceStatus=2)
         .values("sku")
         .annotate(count=Count("sku"))
     )
@@ -445,8 +411,8 @@ def BMlistingsajax(request):
     for sku, count in groupedStockDict.items():
         listing = {
             "SKU": sku,
-            "listing_id": nonelistedDict.get(sku, "Missing SKU on BM")[1],
-            "product_name": nonelistedDict.get(sku, "Missing SKU on BM")[0].replace(
+            "listing_id": nonelistedDict.get(sku, (0, "Missing SKU on BM"))[1],
+            "product_name": nonelistedDict.get(sku, ("Missing SKU on BM"))[0].replace(
                 " - Unlocked", ""
             ),
             "stock_listed": 0,
