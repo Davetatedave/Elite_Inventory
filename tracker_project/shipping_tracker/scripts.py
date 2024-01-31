@@ -355,10 +355,13 @@ class BackMarketAPI:
                 )
                 print(payload)
                 response = requests.post(confirm_url, data=payload, headers=headers)
+                print(response)
                 if response.status_code == 200:
                     sales_order.state = "Confirmed"
+                    sales_order.save()
                 else:
                     sales_order.state = "Unconfirmed"
+                    sales_order.save()
 
 
 def calculateSKU(phoneData):
