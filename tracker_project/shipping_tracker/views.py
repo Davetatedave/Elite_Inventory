@@ -10,6 +10,7 @@ from .models import (
     faults,
     purchaseOrders,
     BackMarketListing,
+    salesOrders,
 )
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView
@@ -363,6 +364,48 @@ def sales(request):
     return render(request, template_name="sales.html")
 
 
+def salesajax(request):
+    # Extract parameters sent by DataTables
+    start = int(request.GET.get("start", 0))
+    length = int(request.GET.get("length", 10))  # Default page size
+
+    search_value = request.GET.get("search[value]", None)
+
+    # Your data filtering and processing logic here
+
+    status = request.GET.getlist("status[]", None)
+    order = request.GET.get("order[0][column]", None)
+    sales = (
+        salesOrders.objects.all()
+        .select_related("customer")
+        .prefetch_related("salesorderitems_set")
+    )
+
+    # Apply additional filtering based on the search query
+
+    total_records = sales.count()
+
+    data = [
+        {
+            "order_id": so.so,
+            "order_date": so.date_created,
+            "channel": so.customer.channel,
+            "customer": so.customer.name,
+            "quantity": sum([item.quantity for item in so.salesorderitems_set.all()]),
+            "state": so.state,
+        }
+        for so in sales[start : start + length]
+    ]
+
+    response_data = {
+        "data": data,
+        "recordsTotal": total_records,
+        "recordsFiltered": total_records,  # Set this to the filtered count if applicable
+    }
+
+    return JsonResponse(response_data)
+
+
 def listings(request):
     return render(request, template_name="listings.html")
 
@@ -475,3 +518,8 @@ def addStockImeis(request):
         }
 
     return HttpResponse(context)
+
+
+def getBmOrders(request):
+    BM.get_orders()
+    return render(request, template_name="sales.html")

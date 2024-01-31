@@ -11,6 +11,10 @@ from .models import (
     faults,
     BackMarketListing,
     warehouse,
+    salesOrders,
+    salesOrderItems,
+    customer,
+    address,
 )
 from collections import defaultdict
 from django.db import IntegrityError
@@ -240,6 +244,122 @@ class BackMarketAPI:
         response = requests.post(url, headers=headers, json=data).json()
         return response
 
+    @classmethod
+    def get_orders(cls, state=1):
+        # Get Orders from BM (default get pending orders)
+        url = "https://www.backmarket.co.uk/ws/orders"
+        mock_url = "https://run.mocky.io/v3/9c6beec8-44fa-4d9f-9963-489b8934c4a3"
+        headers = {
+            **cls.HEADERS,
+            "Accept-Language": "en-gb",
+        }
+        params = {
+            "state": state,
+            "page-size": "50",
+            "date_creation": "2023-01-01 12:00:00",
+        }
+
+        response = requests.request(
+            "GET", mock_url, headers=headers, params=params
+        ).json()
+        if response["count"] < 50:
+            results = response["results"]
+        else:
+            responseJoin = []
+            pagecount = response["count"] // 50 + 1
+            for i in range(1, pagecount + 1):
+                reqUrl = f"{url}&page={i}"
+                response = requests.request("GET", reqUrl, headers=headers).json()[
+                    "results"
+                ]
+                responseJoin += response
+            results = responseJoin
+        # Process each order
+        for order in results:
+            # Get or Create Shipping Address
+            shipping_address, _ = address.objects.get_or_create(
+                street=order["shipping_address"]["street"],
+                street2=order["shipping_address"]["street2"],
+                city=order["shipping_address"]["city"],
+                state=order["shipping_address"]["state"],
+                postalCode=order["shipping_address"]["postalCode"],
+                phone=order["shipping_address"]["phoneNumber"],
+                country=order["shipping_address"]["country"],
+            )
+
+            # Get or Create Billing Address (assuming it's different from shipping)
+            billing_address, _ = address.objects.get_or_create(
+                street=order["billing_address"]["street"],
+                street2=order["billing_address"]["street2"],
+                city=order["billing_address"]["city"],
+                state=order["billing_address"]["state"],
+                postalCode=order["billing_address"]["postalCode"],
+                phone=order["billing_address"]["phoneNumber"],
+                country=order["shipping_address"]["country"],
+            )
+
+            # Get or Create Customer
+
+            customer_obj, _ = customer.objects.get_or_create(
+                name=order["shipping_address"]["firstName"]
+                + " "
+                + order["shipping_address"]["lastName"],
+                defaults={
+                    "shipping_address": shipping_address,
+                    "billing_address": billing_address,
+                    "contact": order["billing_address"]["firstName"]
+                    + " "
+                    + order["billing_address"]["lastName"],
+                    "email": "",  # Not available in the API
+                    "phone": order["billing_address"]["phoneNumber"],
+                    "channel": "BackMarket",
+                }
+                # currency and channel might be added here if available
+            )
+
+            # Create Sales Order
+            sales_order, _ = salesOrders.objects.get_or_create(
+                so=order["order_id"],
+                defaults={
+                    "customer": customer_obj,
+                    "date_shipped": datetime.datetime.strptime(
+                        order["date_shipping"], "%Y-%m-%dT%H:%M:%S"
+                    ),  # Adjust the date format as needed
+                    "shipped_by": order["shipper_display"],
+                },
+            )
+
+            for orderline in order["orderlines"]:
+                # Create Sales Order Items
+                try:
+                    print(f'SKU:{orderline["listing"]}')
+                    sku = deviceAttributes.objects.get(sku=orderline["listing"])
+                except deviceAttributes.DoesNotExist:
+                    sku = None
+                salesOrderItem = salesOrderItems.objects.create(
+                    so=sales_order,
+                    description=orderline["quantity"],
+                    sku=sku,  # Assuming this is a correct reference to a deviceAttributes object
+                    quantity=orderline["quantity"],
+                    unit_cost=float(orderline["price"]),  # Convert to float
+                )
+
+                # # # Confirm Line Item
+                confirm_url = f"https://www.backmarket.fr/ws/orders/{salesOrderItem.so}"
+                payload = json.dumps(
+                    {
+                        "order_id": salesOrderItem.so.so,
+                        "new_state": 2,
+                        "sku": salesOrderItem.sku.sku,
+                    }
+                )
+                print(payload)
+                response = requests.post(confirm_url, data=payload, headers=headers)
+                if response.status_code == 200:
+                    sales_order.state = "Confirmed"
+                else:
+                    sales_order.state = "Unconfirmed"
+
 
 def calculateSKU(phoneData):
     model = phoneData["Model"]
@@ -336,7 +456,7 @@ def bulkUploadPhones(df, warehouse):
                 sku=sku_instance,
                 deviceStatus_id=3 if device["Working"] == "Yes" else 2,
                 battery=device["BatteryHealthPercentage"],
-                date_tested=datetime.strptime(
+                date_tested=datetime.datetime.strptime(
                     device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
                 ),
                 working=True

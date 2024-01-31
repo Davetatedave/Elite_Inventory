@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "shipping_tracker",
     "django_htmx",
     "simple_history",
+    "phone_field",
 ]
 
 MIDDLEWARE = [

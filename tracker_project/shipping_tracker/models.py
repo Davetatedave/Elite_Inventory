@@ -2,6 +2,7 @@ from django.db import models
 from .utils import check_shipping_status
 from django.db.models import Case, When, Value
 from simple_history.models import HistoricalRecords
+from phone_field import PhoneField
 
 
 # Create your models here.
@@ -110,31 +111,73 @@ class purchaseOrderItems(models.Model):
     history = HistoricalRecords()
 
 
+class address(models.Model):
+    street = models.CharField(max_length=20, verbose_name="Street")
+    street2 = models.CharField(max_length=20, verbose_name="Street2")
+    city = models.CharField(max_length=20, verbose_name="City")
+    state = models.CharField(max_length=20, verbose_name="State")
+    postalCode = models.CharField(max_length=20, verbose_name="Zip")
+    phone = PhoneField(blank=True, help_text="Contact phone number")
+    country = models.CharField(max_length=20, verbose_name="Country")
+
+    def __str__(self):
+        return self.address
+
+
+class customer(models.Model):
+    name = models.CharField(max_length=20, verbose_name="Customer Name")
+    shipping_address = models.ForeignKey(
+        address,
+        on_delete=models.PROTECT,
+        verbose_name="Shipping Address",
+        related_name="shipping_customers",
+    )
+    billing_address = models.ForeignKey(
+        address,
+        on_delete=models.PROTECT,
+        verbose_name="Billing Address",
+        related_name="billing_customers",
+    )
+    contact = models.CharField(max_length=20, verbose_name="Contact")
+    email = models.CharField(max_length=20, verbose_name="Email")
+    phone = PhoneField(blank=True, help_text="Contact phone number")
+    currency = models.ForeignKey(
+        currencies, on_delete=models.SET_NULL, verbose_name="Currency", null=True
+    )
+    channel = models.CharField(max_length=20, verbose_name="Channel", null=True)
+
+    def __str__(self):
+        return self.name
+
+
 class salesOrders(models.Model):
     so = models.IntegerField(primary_key=True, verbose_name="SO")
+    customer = models.ForeignKey(
+        customer, on_delete=models.PROTECT, verbose_name="Customer", null=True
+    )
     date_created = models.DateField(verbose_name="Date Added", auto_now_add=True)
     date_shipped = models.DateField(verbose_name="Date Shipped", null=True)
     shipped_by = models.CharField(max_length=20, verbose_name="Shipped By", null=True)
     warehouse = models.ForeignKey(
         warehouse, on_delete=models.PROTECT, verbose_name="Warehouse", null=True
     )
+    state = models.CharField(
+        max_length=20, verbose_name="State", null=True, default="Open"
+    )
+    history = HistoricalRecords()
 
 
 class salesOrderItems(models.Model):
     item = models.AutoField(primary_key=True)
     so = models.ForeignKey(salesOrders, on_delete=models.CASCADE, verbose_name="SO")
     sku = models.ForeignKey(
-        deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU"
+        deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU", null=True
     )
+    description = models.CharField(max_length=80, verbose_name="Description", null=True)
     quantity = models.IntegerField(verbose_name="Quantity")
     unit_cost = models.DecimalField(
         max_digits=5, decimal_places=2, verbose_name="Unit Cost"
     )
-    currencies = models.ForeignKey(
-        currencies, on_delete=models.PROTECT, verbose_name="Currency"
-    )
-    date_added = models.DateField(verbose_name="Date Added", auto_now_add=True)
-    history = HistoricalRecords()
 
 
 class devices(models.Model):
