@@ -2,7 +2,6 @@ from django.db import models
 from .utils import check_shipping_status
 from django.db.models import Case, When, Value
 from simple_history.models import HistoricalRecords
-from phone_field import PhoneField
 
 
 # Create your models here.
@@ -117,7 +116,7 @@ class address(models.Model):
     city = models.CharField(max_length=20, verbose_name="City")
     state = models.CharField(max_length=20, verbose_name="State")
     postalCode = models.CharField(max_length=20, verbose_name="Zip")
-    phone = PhoneField(blank=True, help_text="Contact phone number")
+    phone = models.CharField(max_length=20, verbose_name="Phone")
     country = models.CharField(max_length=20, verbose_name="Country")
 
     def __str__(self):
@@ -140,7 +139,6 @@ class customer(models.Model):
     )
     contact = models.CharField(max_length=20, verbose_name="Contact")
     email = models.CharField(max_length=20, verbose_name="Email")
-    phone = PhoneField(blank=True, help_text="Contact phone number")
     currency = models.ForeignKey(
         currencies, on_delete=models.SET_NULL, verbose_name="Currency", null=True
     )
@@ -164,12 +162,14 @@ class salesOrders(models.Model):
     state = models.CharField(
         max_length=20, verbose_name="State", null=True, default="Open"
     )
-    history = HistoricalRecords()
+    # history = HistoricalRecords()
 
 
 class salesOrderItems(models.Model):
     item = models.AutoField(primary_key=True)
-    so = models.ForeignKey(salesOrders, on_delete=models.CASCADE, verbose_name="SO")
+    salesorder = models.ForeignKey(
+        salesOrders, on_delete=models.CASCADE, verbose_name="SO", related_name="items"
+    )
     sku = models.ForeignKey(
         deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU", null=True
     )

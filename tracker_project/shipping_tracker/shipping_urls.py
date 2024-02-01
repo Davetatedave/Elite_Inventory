@@ -23,4 +23,5 @@ urlpatterns = [
     path("add_stock/imeis", views.addStockImeis, name="add_stock_imeis"),
     path("sales/getBmOrders", views.getBmOrders, name="getBmOrders"),
     path("salesajax/", views.salesajax, name="salesAjax"),
+    path("sales/detail/<int:pk>", views.orderDetail.as_view(), name="orderDetail"),
 ]

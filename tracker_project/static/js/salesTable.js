@@ -31,7 +31,13 @@ $(document).ready(function () {
       {
         data: "order_id",
         render: function (data, type, row, meta) {
-          return '<a href="detail/' + row.order_Id + '">' + data + "</a>";
+          return (
+            '<button hx-get="./detail/' +
+            row.order_id +
+            '" hx-target="#modals-here" hx-trigger="click" @click="modalShow = !modalShow" class="btn btn-primary">' +
+            row.order_id +
+            "</button>"
+          );
         },
         orderable: false,
       },
@@ -73,5 +79,8 @@ $(document).ready(function () {
     processing: true,
     serverSide: true,
     searching: false,
+  });
+  salesTable.on("init.dt", function () {
+    htmx.process(document.body);
   });
 });

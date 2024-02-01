@@ -100,19 +100,19 @@
                                 <i class="bi bi-plus-square"></i>
                                 <p class="d-lg-inline d-none">Add Stock</p>
                             </a>
-                            {% url 'sales' as sales_url %}
-                            <a class="nav-link navItem {% if request.path == sales_url %}activeCust{% endif %}"
-                               aria-current="page"
-                               href="{{ sales_url }}">
-                                <i class="bi bi-currency-dollar"></i>
-                                <p class="d-lg-inline d-none">Sales</p>
-                            </a>
                             {% url 'listings' as listings_url %}
                             <a class="nav-link navItem {% if request.path == listings_url %}activeCust{% endif %}"
                                aria-current="page"
                                href="{{ listings_url }}">
                                 <i class="bi bi-shop"></i>
                                 <p class="d-lg-inline d-none">Listings</p>
+                            </a>
+                            {% url 'sales' as sales_url %}
+                            <a class="nav-link navItem {% if request.path == sales_url %}activeCust{% endif %}"
+                               aria-current="page"
+                               href="{{ sales_url }}">
+                                <i class="bi bi-currency-dollar"></i>
+                                <p class="d-lg-inline d-none">Sales</p>
                             </a>
                         </li>
                         <!-- Add more nav items here if needed -->

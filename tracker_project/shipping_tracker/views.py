@@ -11,6 +11,7 @@ from .models import (
     purchaseOrders,
     BackMarketListing,
     salesOrders,
+    salesOrderItems,
 )
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView
@@ -376,9 +377,7 @@ def salesajax(request):
     status = request.GET.getlist("status[]", None)
     order = request.GET.get("order[0][column]", None)
     sales = (
-        salesOrders.objects.all()
-        .select_related("customer")
-        .prefetch_related("salesorderitems_set")
+        salesOrders.objects.all().select_related("customer").prefetch_related("items")
     )
 
     # Apply additional filtering based on the search query
@@ -391,7 +390,7 @@ def salesajax(request):
             "order_date": so.date_created,
             "channel": so.customer.channel,
             "customer": so.customer.name,
-            "quantity": sum([item.quantity for item in so.salesorderitems_set.all()]),
+            "quantity": sum([item.quantity for item in so.items.all()]),
             "state": so.state,
         }
         for so in sales[start : start + length]
@@ -523,3 +522,13 @@ def addStockImeis(request):
 def getBmOrders(request):
     BM.get_orders()
     return render(request, template_name="sales.html")
+
+
+class orderDetail(DetailView):
+    queryset = (
+        salesOrders.objects.select_related("customer__shipping_address")
+        .prefetch_related("items")
+        .all()
+    )
+
+    template_name = "order_detail.html"

@@ -1,0 +1,62 @@
+<div class="container-fluid" id="order-details">
+    <div class="row">
+        <div class="col-md-4 modalheader">
+            <div>
+                <h3>
+                    Order <a href="https://www.backmarket.co.uk/bo_merchant/orders/all?see-order-details={{ object.so }}"
+    target="_blank">{{ object.so }}</a>
+                </h3>
+                <h4>{{ object.date_created }}</h4>
+                <h4>{{ object.customer.channel }}</h4>
+                <span class="h5 badge bg-secondary">{{ object.state }}</span>
+            </div>
+            <div class="infobox">
+                <div class="d-flex flex-row flex-nowrap justify-content-between">
+                    <h5 class="text-decoration-underline">Shipping</h5>
+                    <a href="#"><i class="bi bi-pencil text-muted"></i></a>
+                </div>
+                <address>
+                    <strong>{{ object.customer.name }}</strong>
+                    <br />
+                    {{ object.customer.shipping_address.street }}
+                    <br />
+                    {{ object.customer.shipping_address.city }}, {{ object.customer.shipping_address.state }} {{ object.customer.shipping_address.postalCode }}
+                    <br />
+                </address>
+            </div>
+        </div>
+        <div class="col-md-4 overflow-scroll">
+            <h3>Line Items.</h3>
+            {% for item in object.items.all %}
+                <li>{{ item.sku.sku }}</li>
+                {% with ''|center:item.quantity as range %}
+                    {% for _ in range %}
+                        <div class="input-group input-group-sm mb-3">
+                            <span class="input-group-text" id="inputGroup-sizing-sm">Scan IMEI</span>
+                            <input type="text"
+                                   class="form-control"
+                                   aria-label="Sizing example input"
+                                   aria-describedby="inputGroup-sizing-sm">
+                        </div>
+                    {% endfor %}
+                {% endwith %}
+            {% endfor %}
+        </div>
+        <div class="col-md-4">
+            <div class="disabled">
+                <h3>Shipping</h3>
+                <span class="badge badge-default">Label</span>
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle"
+                            type="button"
+                            id="dropdownMenuButton"
+                            data-toggle="dropdown">Action</button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <a class="dropdown-item disabled" href="#">Action</a> <a class="dropdown-item" href="#">Another action</a> <a class="dropdown-item" href="#">Something else here</a>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-success">Button</button>
+            </div>
+        </div>
+    </div>
+</div>
