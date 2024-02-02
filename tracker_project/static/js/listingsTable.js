@@ -7,29 +7,6 @@ let quantityCounter = function (data, type, row) {
 </div>`;
 };
 
-function showTooltip(element, message) {
-  let tooltip = $(".tooltip-custom");
-
-  if (!tooltip.length) {
-    // Create tooltip if it doesn't exist
-    tooltip = $('<div class="tooltip-custom"></div>').appendTo("body");
-  }
-
-  tooltip.text(message);
-  let elementOffset = element.offset();
-  tooltip.css({
-    top: elementOffset.top - tooltip.outerHeight() - 10,
-    left: elementOffset.left,
-  });
-
-  tooltip.stop().fadeIn(150);
-
-  // Hide tooltip after some time (optional)
-  setTimeout(function () {
-    tooltip.fadeOut();
-  }, 3000);
-}
-
 $(document).ready(function () {
   let bmTable = $("#BMlistings").DataTable({
     order: [],

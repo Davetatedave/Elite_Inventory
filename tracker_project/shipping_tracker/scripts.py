@@ -15,6 +15,7 @@ from .models import (
     salesOrderItems,
     customer,
     address,
+    currencies,
 )
 from collections import defaultdict
 from django.db import IntegrityError
@@ -299,20 +300,21 @@ class BackMarketAPI:
             )
 
             # Get or Create Customer
-
             customer_obj, _ = customer.objects.get_or_create(
                 name=order["shipping_address"]["firstName"]
                 + " "
                 + order["shipping_address"]["lastName"],
+                shipping_address=shipping_address,
+                billing_address=billing_address,
                 defaults={
-                    "shipping_address": shipping_address,
-                    "billing_address": billing_address,
                     "contact": order["billing_address"]["firstName"]
                     + " "
                     + order["billing_address"]["lastName"],
                     "email": "",  # Not available in the API
-                    "phone": order["billing_address"]["phoneNumber"],
                     "channel": "BackMarket",
+                    "currency": currencies.objects.get(
+                        name=order["orderlines"][0]["currency"]
+                    ),
                 }
                 # currency and channel might be added here if available
             )
@@ -337,18 +339,18 @@ class BackMarketAPI:
                 except deviceAttributes.DoesNotExist:
                     sku = None
                 salesOrderItem = salesOrderItems.objects.create(
-                    so=sales_order,
-                    description=orderline["quantity"],
+                    salesorder=sales_order,
+                    description=orderline["product"],
                     sku=sku,  # Assuming this is a correct reference to a deviceAttributes object
                     quantity=orderline["quantity"],
                     unit_cost=float(orderline["price"]),  # Convert to float
                 )
 
                 # # # Confirm Line Item
-                confirm_url = f"https://www.backmarket.fr/ws/orders/{salesOrderItem.so}"
+                confirm_url = f"https://www.backmarket.fr/ws/orders/{salesOrderItem.salesorder.so}"
                 payload = json.dumps(
                     {
-                        "order_id": salesOrderItem.so.so,
+                        "order_id": salesOrderItem.salesorder.so,
                         "new_state": 2,
                         "sku": salesOrderItem.sku.sku,
                     }

@@ -30,6 +30,9 @@ class deviceAttributes(models.Model):
     carrier = models.CharField(max_length=20, verbose_name="Carrier", blank=True)
     grade = models.CharField(max_length=20, verbose_name="Grade")
 
+    def name(self):
+        return f"{self.model} {self.color} {self.capacity} {self.grade}"
+
 
 class warehouse(models.Model):
     name = models.CharField(
@@ -138,6 +141,7 @@ class customer(models.Model):
         related_name="billing_customers",
     )
     contact = models.CharField(max_length=20, verbose_name="Contact")
+    phone = models.CharField(max_length=20, verbose_name="Phone", null=True)
     email = models.CharField(max_length=20, verbose_name="Email")
     currency = models.ForeignKey(
         currencies, on_delete=models.SET_NULL, verbose_name="Currency", null=True

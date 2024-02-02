@@ -1,62 +1,114 @@
-<div class="container-fluid" id="order-details">
-    <div class="row">
-        <div class="col-md-4 modalheader">
-            <div>
-                <h3>
-                    Order <a href="https://www.backmarket.co.uk/bo_merchant/orders/all?see-order-details={{ object.so }}"
-    target="_blank">{{ object.so }}</a>
-                </h3>
-                <h4>{{ object.date_created }}</h4>
-                <h4>{{ object.customer.channel }}</h4>
-                <span class="h5 badge bg-secondary">{{ object.state }}</span>
+<div class="d-flex" id="order-details">
+    <div class="d-flex flex-column col justify-content-start p-4">
+        <div>
+            <h3>
+                Order <a href="https://www.backmarket.co.uk/bo_merchant/orders/all?see-order-details={{ object.so }}">{{ object.so }}</a>
+            </h3>
+            <h4>{{ object.date_created }}</h4>
+            <h4>{{ object.customer.channel }}</h4>
+            <span class="h5 badge bg-secondary">{{ object.state }}</span>
+        </div>
+        <div class="infobox d-flex flex-column mt-2">
+            <div class="d-flex flex-row flex-nowrap justify-content-between">
+                <h5 class="text-decoration-underline">Shipping</h5>
+                <a href="#" class="edit-toggle"><i class="bi bi-pencil text-muted"></i></a>
             </div>
-            <div class="infobox">
-                <div class="d-flex flex-row flex-nowrap justify-content-between">
-                    <h5 class="text-decoration-underline">Shipping</h5>
-                    <a href="#"><i class="bi bi-pencil text-muted"></i></a>
-                </div>
+            <div class="address-display">
                 <address>
                     <strong>{{ object.customer.name }}</strong>
-                    <br />
+                    <br>
                     {{ object.customer.shipping_address.street }}
-                    <br />
+                    <br>
                     {{ object.customer.shipping_address.city }}, {{ object.customer.shipping_address.state }} {{ object.customer.shipping_address.postalCode }}
-                    <br />
+                    <br>
                 </address>
             </div>
+            <div class="address-edit" style="display: none;">
+                <form id="addressEditForm">
+                    <input type="text"
+                           id="name"
+                           value="{{ object.customer.name }}"
+                           class="form-control mb-2">
+                    <input type="text"
+                           id="street"
+                           value="{{ object.customer.shipping_address.street }}"
+                           class="form-control mb-2">
+                    <input type="text"
+                           id="city"
+                           value="{{ object.customer.shipping_address.city }}"
+                           class="form-control mb-2">
+                    <input type="text"
+                           id="state"
+                           value="{{ object.customer.shipping_address.state }}"
+                           class="form-control mb-2">
+                    <input type="text"
+                           id="postalCode"
+                           value="{{ object.customer.shipping_address.postalCode }}"
+                           class="form-control mb-2">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary cancel-edit">Cancel</button>
+                </form>
+            </div>
         </div>
-        <div class="col-md-4 overflow-scroll">
-            <h3>Line Items.</h3>
-            {% for item in object.items.all %}
-                <li>{{ item.sku.sku }}</li>
+    </div>
+    <div class="col border-start border-end overflow-auto p-4">
+        <h3>Line Items</h3>
+        {% for item in object.items.all %}
+            <div class="infobox">
+                <div class="d-flex flex-column justify-content-around">
+                    <p>
+                        Listing: <strong>{{ item.sku.name }}</strong>
+                    </p>
+                    <p>
+                        SKU: <strong>{{ item.sku.sku }}</strong>
+                    </p>
+                    <p>
+                        Price: <strong>{{ object.customer.currency.symbol }}{{ item.unit_cost }}</strong>
+                    </p>
+                    <p>
+                        Quantity: <strong>{{ item.quantity }}</strong>
+                    </p>
+                </div>
                 {% with ''|center:item.quantity as range %}
                     {% for _ in range %}
-                        <div class="input-group input-group-sm mb-3">
-                            <span class="input-group-text" id="inputGroup-sizing-sm">Scan IMEI</span>
-                            <input type="text"
+                        <div class="input-group input-group-sm my-2">
+                            <span class="input-group-text" id="inputGroup-sizing-sm">IMEI</span>
+                            <input id="imeiInput{{forloop.counter}}"
+                                    type="text"
                                    class="form-control"
                                    aria-label="Sizing example input"
                                    aria-describedby="inputGroup-sizing-sm">
                         </div>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-sm btn-secondary">Commit</button>
+                        </div>
                     {% endfor %}
                 {% endwith %}
-            {% endfor %}
-        </div>
-        <div class="col-md-4">
-            <div class="disabled">
-                <h3>Shipping</h3>
-                <span class="badge badge-default">Label</span>
-                <div class="dropdown">
-                    <button class="btn btn-primary dropdown-toggle"
-                            type="button"
-                            id="dropdownMenuButton"
-                            data-toggle="dropdown">Action</button>
-                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                        <a class="dropdown-item disabled" href="#">Action</a> <a class="dropdown-item" href="#">Another action</a> <a class="dropdown-item" href="#">Something else here</a>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-success">Button</button>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="col p-4">
+        <h3>Shipping</h3>
+        <span class="badge badge-default">Label</span>
+        <div class="dropdown">
+            <select id="shipperSelect" style="width: 100%">
+                <option value="DHL">DHL</option>
+                <option value="UPS">UPS</option>
+            </select>
+            <div class="input-group my-2">
+                <button class="input-group-text" id="getShippingPrice">Get Price</button>
+                <input readonly
+                       type="text"
+                       class="form-control"
+                       placeholder=""
+                       id="shippingPrice"
+                       aria-label="Username"
+                       aria-describedby="basic-addon1">
             </div>
         </div>
+        <button id="buyShipping" type="button" class="mx-auto my-2 btn btn-primary">Buy Shipping</button>
+        <button id="printLabel"
+                type="button"
+                class="mx-auto my-2 btn btn-secondary disabled">Label</button>
     </div>
 </div>

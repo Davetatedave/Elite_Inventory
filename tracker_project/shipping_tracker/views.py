@@ -12,6 +12,7 @@ from .models import (
     BackMarketListing,
     salesOrders,
     salesOrderItems,
+    customer,
 )
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView
@@ -520,13 +521,17 @@ def addStockImeis(request):
 
 
 def getBmOrders(request):
+    salesOrders.objects.all().delete()
+    customer.objects.all().delete()
     BM.get_orders()
     return render(request, template_name="sales.html")
 
 
 class orderDetail(DetailView):
     queryset = (
-        salesOrders.objects.select_related("customer__shipping_address")
+        salesOrders.objects.select_related(
+            "customer__shipping_address", "customer__currency"
+        )
         .prefetch_related("items")
         .all()
     )

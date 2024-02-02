@@ -73,6 +73,7 @@ body {
 }
 
 .infobox{
+  width:100%;
   background-color: #f5f5f5;
   border: 1px solid #e3e3e3;
   border-radius: 4px;
@@ -129,18 +130,6 @@ body {
   height: 100%;
 }
 
-.disabled{
-  display: block;
-  position: relative;
-  pointer-events: none;
-  cursor: default;
-  user-select: none;
-  background-color: #ffffff;
-  z-index: 999;
-  opacity: 0.3;
-  height: 100%;
-}
-
 .float {
   display: flex;
   position: absolute;
@@ -148,9 +137,9 @@ body {
   left: 15%;
   width: 800px;
   max-width: 100%;
-  height: 400px;
+  height: auto;
   max-height: 100%;
-  background-color: #fff;
+  background-color: hwb(0 100% 0%);
   border: 1px solid rgba(0, 0, 0, 0.125);
   border-radius: 0.25rem;
   overflow: hidden;
@@ -177,21 +166,6 @@ body {
 }
 #modals-here{
   resize: both;
-}
-.modalheader {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  border-top-left-radius: calc(0.3rem - 1px);
-  border-top-right-radius: calc(0.3rem - 1px);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;}
-
-.modalBody {
-  overflow: scroll;
-  height: inherit;
-  padding: 1rem 2rem;
 }
 
 #mainContent {
@@ -250,7 +224,6 @@ background-color: white;
   border-radius: 5rem;
   background-color: #8ba1b8;
 }
-
 
 .tableDropdown {
   --bs-dropdown-zindex: 2000;
