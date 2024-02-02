@@ -33,13 +33,6 @@ jobs:
       - name: "Use gcloud CLI"
         run: "gcloud info"
 
-      # Make and apply migrations
-      - name: Make Migrations
-        run: python tracker_project/manage.py makemigrations
-
-      - name: Apply Migrations
-        run: python tracker_project/manage.py migrate
-
       - name: Deploy to Google App Engine
         run: |
           gcloud app deploy tracker_project/app.yaml
