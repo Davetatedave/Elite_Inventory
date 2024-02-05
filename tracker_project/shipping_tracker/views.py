@@ -23,6 +23,8 @@ from .scripts import PhoneCheckAPI as PC, calculateSKU, BackMarketAPI as BM
 from collections import defaultdict
 from django.dispatch import receiver
 from django.db.models.signals import post_save
+import requests
+import json
 
 
 def index(request):
@@ -143,11 +145,11 @@ def newSKU(request):
                         date_tested=datetime.strptime(
                             device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
                         ),
-                        working=True
-                        if device["Working"] == "Yes"
-                        else False
-                        if device["Working"] == "No"
-                        else None,
+                        working=(
+                            True
+                            if device["Working"] == "Yes"
+                            else False if device["Working"] == "No" else None
+                        ),
                         po=po_instance,
                         warehouse_id=warehouse,
                     )
@@ -308,9 +310,9 @@ def inventoryAjax(request):
                 "color": device.sku.color,
                 "grade": device.sku.grade,
                 "battery": device.battery,
-                "status": device.deviceStatus.status
-                if device.deviceStatus
-                else "Unknown",
+                "status": (
+                    device.deviceStatus.status if device.deviceStatus else "Unknown"
+                ),
                 "count": 1,
             }
             for device in phones[start : start + length]
@@ -537,3 +539,171 @@ class orderDetail(DetailView):
     )
 
     template_name = "order_detail.html"
+
+
+def getShippingRates(request):
+    query = request.POST.dict()
+    print(query)
+    headers = {
+        "Authorization": "Basic YXBNM2pZNWFNOG5aMGI6QiEwbEJeMXdYIzRzSiQ2eQ==",
+    }
+    response = requests.get(
+        url="https://express.api.dhl.com/mydhlapi/rates", headers=headers, params=query
+    )
+    services = []
+    # Example to extract and summarize information
+    for product in response.json()["products"]:
+        product_name = product.get("productName", "N/A")
+        product_code = product.get("productCode", "N/A")
+        weight_provided = product.get("weight", {}).get("provided", "N/A")
+        total_prices = product.get("totalPrice", [])
+
+        # Prices in GBP and EUR
+        price_gbp = next(
+            (
+                price["price"]
+                for price in total_prices
+                if price["priceCurrency"] == "GBP"
+            ),
+            "N/A",
+        )
+        price_eur = next(
+            (
+                price["price"]
+                for price in total_prices
+                if price["priceCurrency"] == "EUR"
+            ),
+            "N/A",
+        )
+
+        services.append(
+            {
+                "Name": product_name,
+                "Code": product_code,
+                "Weight": weight_provided,
+                "gbPrice": price_gbp,
+                "euPrice": price_eur,
+            }
+        )
+    sorted_services = sorted(services, key=lambda x: x["gbPrice"])
+    context = {"services": sorted_services}
+    print(context)
+    html_snippet = render_to_string("./snippets/shipping_options.html", context)
+
+    return HttpResponse(html_snippet)
+
+
+def buyShippingLabel(request):
+    customer = request.GET.get("customer")
+    shipping_service = request.GET.get("shipping_service")
+    imies = request.GET.getlist("imeis[]")
+    print(customer, shipping_service, imies)
+    headers = {
+        "Authorization": "Basic YXBNM2pZNWFNOG5aMGI6QiEwbEJeMXdYIzRzSiQ2eQ==",
+    }
+    # body = {
+    #     "valueAddedServices": [{"serviceCode": "PT"}],
+    #     "productCode": "U",
+    #     "customerReferences": [{"value": "Customer reference", "typeCode": "CU"}],
+    #     "plannedShippingDateAndTime": datetime.datetime()
+    #     .toISOString()
+    #     .slice(0, -4)
+    #     .replace(".", " GMT+01:00"),
+    #     "pickup": {"isRequested": false},
+    #     "outputImageProperties": {
+    #         "encodingFormat": "pdf",
+    #         "imageOptions": [
+    #             {
+    #                 "templateName": "COMMERCIAL_INVOICE_P_10",
+    #                 "invoiceType": "commercial",
+    #                 "isRequested": false,
+    #                 "typeCode": "invoice",
+    #             }
+    #         ],
+    #     },
+    #     "accounts": [{"number": "425992913", "typeCode": "shipper"}],
+    #     "customerDetails": {
+    #         "shipperDetails": {
+    #             "postalAddress": {
+    #                 "cityName": "{{ Details.data.shipping_address_town['0']}}",
+    #                 "countryCode": "{{ Details.data.shipping_address_country_code['0'] }}",
+    #                 "postalCode": "{{ Details.data.shipping_address_post_code['0']}}",
+    #                 "addressLine1": "{{ Details.data.shipping_address_house_no['0'] }} {{ Details.data.shipping_address_street_name }}",
+    #             },
+    #             "contactInformation": {
+    #                 "phone": "{{ Details.data.shipping_address_phone_number['0']}}",
+    #                 "companyName": "{{Details.data.shipping_address_first_name['0']}} {{ Details.data.shipping_address_family_name['0'] }}",
+    #                 "fullName": "{{Details.data.shipping_address_first_name['0']}} {{ Details.data.shipping_address_family_name['0'] }}",
+    #                 "email": "{{ Details.data.customer_email['0'] }}",
+    #             },
+    #             "registrationNumbers": [
+    #                 {"number": "GB12345", "issuerCountryCode": "GB", "typeCode": "VAT"},
+    #                 {"number": "GB12345", "issuerCountryCode": "GB", "typeCode": "EOR"},
+    #             ],
+    #             "typeCode": "business",
+    #         },
+    #         "receiverDetails": {
+    #             "postalAddress": {
+    #                 "cityName": "Belfast",
+    #                 "countryCode": "GB",
+    #                 "postalCode": "BT2 7BG",
+    #                 "addressLine1": "128a Great Victoria St",
+    #             },
+    #             "contactInformation": {
+    #                 "phone": "1212345678",
+    #                 "companyName": "We Sell Mobiles",
+    #                 "fullName": "Chris Seiffert",
+    #                 "email": "chris.seiffert@eliteinnovations.co.uk",
+    #             },
+    #             "typeCode": "business",
+    #         },
+    #     },
+    #     "content": {
+    #         "exportDeclaration": {
+    #             "lineItems": [
+    #                 {
+    #                     "number": 1,
+    #                     "commodityCodes": [
+    #                         {"value": "HS1234567890", "typeCode": "outbound"}
+    #                     ],
+    #                     "priceCurrency": "GBP",
+    #                     "quantity": {"unitOfMeasurement": "BOX", "value": 1},
+    #                     "price": 150,
+    #                     "description": "line item description",
+    #                     "weight": {"netValue": 10, "grossValue": 10},
+    #                     "exportReasonType": "permanent",
+    #                     "manufacturerCountry": "CZ",
+    #                 }
+    #             ],
+    #             "exportReason": "Return",
+    #             "additionalCharges": [{"value": 10, "typeCode": "freight"}],
+    #             "invoice": {
+    #                 "date": "2020-03-18",
+    #                 "number": "12345-ABC",
+    #                 "signatureName": "Brewer",
+    #                 "signatureTitle": "Mr.",
+    #             },
+    #             "shipmentType": "commercial",
+    #         },
+    #         "unitOfMeasurement": "metric",
+    #         "isCustomsDeclarable": false,
+    #         "incoterm": "DAP",
+    #         "description": "shipment description",
+    #         "packages": [
+    #             {
+    #                 "customerReferences": [
+    #                     {"value": "Piece reference", "typeCode": "CU"}
+    #                 ],
+    #                 "weight": 0.5,
+    #                 "description": "Used Mobile Device (RETAIL RETURN)",
+    #                 "dimensions": {"length": 20, "width": 10, "height": 5},
+    #             }
+    #         ],
+    #         "declaredValueCurrency": "GBP",
+    #         "declaredValue": 150,
+    #     },
+    # }
+    # response = requests.get(
+    #     url="https://express.api.dhl.com/mydhlapi/rates", headers=headers, body=body
+    # )
+    return HttpResponse("response")

@@ -61,11 +61,7 @@ document.addEventListener("htmx:afterRequest", function (evt) {
     $(".address-edit").hide();
     $(".address-display").show();
   });
-  // Tooltip for Missing IMEIs
-  $("#buyShipping").on("click", function () {
-    let imei = $("#imei").val();
-    showTooltip($(this), "IMEIs Are Required");
-  });
+
   // Get Shipping Price Button
   $("#getShippingPrice").on("click", function () {
     var shipper = $("#shipperSelect").val();
@@ -74,10 +70,68 @@ document.addEventListener("htmx:afterRequest", function (evt) {
       showTooltip($(this), "Please Select a Shipper");
     }
     if (shipper == "DHL") {
-      $("#shippingPrice").val("£14");
+      let csrftoken = Cookies.get("csrftoken");
+      $.ajax({
+        beforeSend: function () {
+          $("#overlay").fadeIn(50);
+        },
+        url: "/shipping_rates/",
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken },
+        dataType: "html",
+        data: {
+          accountNumber: "425992913",
+          originCountryCode: "GB",
+          originPostalCode: "BT2 7BG",
+          originCityName: "Belfast",
+          destinationCountryCode: "GB",
+          destinationPostalCode: "BT2 7BG",
+          destinationCityName: "Belfast",
+          weight: "0.5",
+          length: "15",
+          width: "10",
+          height: "5",
+          plannedShippingDate: new Date().toISOString().split("T")[0],
+          isCustomsDeclarable: "false",
+          unitOfMeasurement: "metric",
+        },
+        success: function (response) {
+          $("#shippingPrice").replaceWith(response);
+          $("#overlay").fadeOut(50);
+        },
+      });
     }
     if (shipper == "UPS") {
       $("#shippingPrice").val("£17");
+    }
+  });
+
+  // Tooltip for Missing IMEIs
+  $("#buyShipping").on("click", function () {
+    let imeis = [];
+    $(".imeis").each(function () {
+      let imei = $(this).val();
+      if (imei) imeis.push(imei);
+      else imeis.push("Missing"); // Add the value to the array if it's not empty
+    });
+    if (imeis.includes("Missing")) {
+      showTooltip($(this), "All IMEIs Are Required");
+    }
+    if ($("#shippingPrice").val() == "") {
+      showTooltip($(this), "Please Select Shipping Method");
+    } else {
+      $.ajax({
+        url: "/shipping_label/",
+        method: "GET",
+        data: {
+          shipping_service: $("#shippingPrice").val(),
+          customer: $("#buyShipping").data("customer"),
+          imeis: imeis,
+        },
+        success: function (response) {
+          $("#label").replaceWith(response);
+        },
+      });
     }
   });
 });

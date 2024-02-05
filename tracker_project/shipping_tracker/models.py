@@ -122,9 +122,6 @@ class address(models.Model):
     phone = models.CharField(max_length=20, verbose_name="Phone")
     country = models.CharField(max_length=20, verbose_name="Country")
 
-    def __str__(self):
-        return self.address
-
 
 class customer(models.Model):
     name = models.CharField(max_length=20, verbose_name="Customer Name")
@@ -181,6 +178,25 @@ class salesOrderItems(models.Model):
     quantity = models.IntegerField(verbose_name="Quantity")
     unit_cost = models.DecimalField(
         max_digits=5, decimal_places=2, verbose_name="Unit Cost"
+    )
+
+
+class shipment(models.Model):
+    so = models.ForeignKey(
+        salesOrders, on_delete=models.PROTECT, verbose_name="SO", null=True
+    )
+    tracking_number = models.CharField(max_length=20, verbose_name="Tracking Number")
+    shipper = models.CharField(max_length=20, verbose_name="Shipper")
+    date_shipped = models.DateField(verbose_name="Date Shipped", null=True)
+    date_delivered = models.DateField(verbose_name="Date Delivered", null=True)
+    delivered_by = models.CharField(
+        max_length=20, verbose_name="Delivered By", null=True
+    )
+    shipping_cost = models.DecimalField(
+        max_digits=5, decimal_places=2, verbose_name="Shipping Cost", null=True
+    )
+    shipping_label = models.CharField(
+        max_length=20, verbose_name="Shipping Label", null=True
     )
 
 

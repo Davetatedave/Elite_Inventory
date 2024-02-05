@@ -73,9 +73,9 @@
                     {% for _ in range %}
                         <div class="input-group input-group-sm my-2">
                             <span class="input-group-text" id="inputGroup-sizing-sm">IMEI</span>
-                            <input id="imeiInput{{forloop.counter}}"
-                                    type="text"
-                                   class="form-control"
+                            <input id="imeiInput{{ forloop.counter }}"
+                                   type="text"
+                                   class="form-control imeis"
                                    aria-label="Sizing example input"
                                    aria-describedby="inputGroup-sizing-sm">
                         </div>
@@ -90,23 +90,26 @@
     <div class="col p-4">
         <h3>Shipping</h3>
         <span class="badge badge-default">Label</span>
-        <div class="dropdown">
-            <select id="shipperSelect" style="width: 100%">
-                <option value="DHL">DHL</option>
-                <option value="UPS">UPS</option>
-            </select>
-            <div class="input-group my-2">
-                <button class="input-group-text" id="getShippingPrice">Get Price</button>
-                <input readonly
-                       type="text"
-                       class="form-control"
-                       placeholder=""
-                       id="shippingPrice"
-                       aria-label="Username"
-                       aria-describedby="basic-addon1">
-            </div>
+        <select id="shipperSelect" style="width: 100%">
+            <option value="DHL">DHL</option>
+            <option value="UPS">UPS</option>
+        </select>
+        <div class="input-group my-2">
+            <button class="input-group-text" id="getShippingPrice">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <input readonly
+                   type="text"
+                   class="form-control"
+                   placeholder=""
+                   id="shippingPrice"
+                   aria-label="Shipping Price"
+                   aria-describedby="basic-addon1">
         </div>
-        <button id="buyShipping" type="button" class="mx-auto my-2 btn btn-primary">Buy Shipping</button>
+        <button id="buyShipping"
+                type="button"
+                class="mx-auto my-2 btn btn-primary"
+                data-customer="{{ object.pk }}">Buy Shipping</button>
         <button id="printLabel"
                 type="button"
                 class="mx-auto my-2 btn btn-secondary disabled">Label</button>

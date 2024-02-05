@@ -125,11 +125,11 @@ class PhoneCheckAPI:
                     date_tested=datetime.datetime.strptime(
                         device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
                     ),
-                    working=True
-                    if device["Working"] == "Yes"
-                    else False
-                    if device["Working"] == "No"
-                    else None,
+                    working=(
+                        True
+                        if device["Working"] == "Yes"
+                        else False if device["Working"] == "No" else None
+                    ),
                     po=po_instance,
                     warehouse=whInstance,
                 )
@@ -171,57 +171,60 @@ class BackMarketAPI:
     @classmethod
     def get_listings(cls, start, page_length):
         results = []
-        querystring = {
-            "page": 1,
-            "page-size": 50,
-            "publication_state": 2,
-        }
-        response = requests.get(
-            cls.BASE_URL, headers=cls.HEADERS, params=querystring
-        ).json()
-        results.extend(response["results"])
-        next = response.get("next", None)
-        while next:
-            response = requests.get(next, headers=cls.HEADERS).json()
+        skus_to_fetch = []
+
+        # Fetch listings in batches and collect skus to fetch in a single query
+        while True:
+            querystring = {
+                "page": 1,  # Reset page for each batch
+                "page-size": 50,
+                "publication_state": 2,
+            }
+            response = requests.get(
+                cls.BASE_URL, headers=cls.HEADERS, params=querystring
+            ).json()
             results.extend(response["results"])
+            skus_to_fetch.extend(
+                listing["sku"]
+                for listing in response["results"]
+                if "IP" in listing["sku"]
+            )
             next = response.get("next", None)
+            if not next:
+                break
+
+        # Fetch skus in a single query
+        sku_mapping = {}
+        if skus_to_fetch:
+            sku_objects = deviceAttributes.objects.filter(
+                sku__in=skus_to_fetch
+            ).in_bulk()  # Use in_bulk for efficient lookup
+            sku_mapping = {sku: obj for sku, obj in sku_objects.items()}
+
         items = []
         for listing in results:
             if "IP" not in listing["sku"]:
                 continue
-            try:
-                sku = deviceAttributes.objects.get(sku=listing["sku"])
-                instance, created = BackMarketListing.objects.update_or_create(
-                    listing_id=listing["listing_id"],
-                    defaults={
-                        "sku": sku,
-                        "title": listing["title"],
-                        "price": listing["price"],
-                        "min_price": listing["min_price"],
-                        "quantity": listing["quantity"],
-                        "backmarket_id": listing["backmarket_id"],
-                        "product_id": listing["product_id"],
-                        "max_price": listing["max_price"],
-                    },
-                )
-                items.append(instance)
-            except deviceAttributes.DoesNotExist:
-                # Create a temporary BackMarketListing object without saving it to the database
-                temp_instance = BackMarketListing(
-                    sku=None,
-                    title=listing["title"],
-                    price=listing["price"],
-                    min_price=listing["min_price"],
-                    quantity=listing["quantity"],
-                    backmarket_id=listing["backmarket_id"],
-                    product_id=listing["product_id"],
-                    max_price=listing["max_price"],
-                )
-                items.append(temp_instance)
-                pass
+            sku = listing["sku"]
+            sku_obj = sku_mapping.get(sku)
+
+            # Create or update BackMarketListing instance
+            instance, created = BackMarketListing.objects.update_or_create(
+                listing_id=listing["listing_id"],
+                defaults={
+                    "sku": sku_obj,  # Use fetched sku object if available
+                    "title": listing["title"],
+                    "price": listing["price"],
+                    "min_price": listing["min_price"],
+                    "quantity": listing["quantity"],
+                    "backmarket_id": listing["backmarket_id"],
+                    "product_id": listing["product_id"],
+                    "max_price": listing["max_price"],
+                },
+            )
+            items.append(instance)
 
         total = len(items)
-
         return items, total
 
     @classmethod
@@ -248,6 +251,7 @@ class BackMarketAPI:
     @classmethod
     def get_orders(cls, state=1):
         # Get Orders from BM (default get pending orders)
+        preprodurl = "https://preprod.backmarket.fr/ws/orders"
         url = "https://www.backmarket.co.uk/ws/orders"
         mock_url = "https://run.mocky.io/v3/9c6beec8-44fa-4d9f-9963-489b8934c4a3"
         headers = {
@@ -315,7 +319,7 @@ class BackMarketAPI:
                     "currency": currencies.objects.get(
                         name=order["orderlines"][0]["currency"]
                     ),
-                }
+                },
                 # currency and channel might be added here if available
             )
 
@@ -464,11 +468,11 @@ def bulkUploadPhones(df, warehouse):
                 date_tested=datetime.datetime.strptime(
                     device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
                 ),
-                working=True
-                if device["Working"] == "Yes"
-                else False
-                if device["Working"] == "No"
-                else None,
+                working=(
+                    True
+                    if device["Working"] == "Yes"
+                    else False if device["Working"] == "No" else None
+                ),
                 po=po_instance,
                 warehouse_id=warehouse,
             )
