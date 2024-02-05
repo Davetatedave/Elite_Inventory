@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     "shipping_tracker",
     "django_htmx",
     "simple_history",
-    "corsheaders",
 ]
 
 MIDDLEWARE = [
@@ -55,8 +54,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
+
 ]
 
 ROOT_URLCONF = "tracker_project.urls"
@@ -83,9 +81,6 @@ TEMPLATES = [
     },
 ]
 
-CORS_ORIGIN_ALLOW_ALL = True
-
-CORS_ALLOWED_ORIGINS = ["https://express.api.dhl.com"]
 
 WSGI_APPLICATION = "tracker_project.wsgi.application"
 
