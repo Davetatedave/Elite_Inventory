@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+    <div class="row">
+        <h1>Add Stock from Phonecheck</h1>
+    </div>
+    <div class="row h-100 justify-content-evenly">
+        <div class="col-5">
+            <h2>Add By PO</h2>
+            <div class="row d-flex flex-column justify-content-evenly">
+                <div class="d-flex align-items-center">
+                    <select name="po" id="po" class="form-control mx-2">
+                        <option value="" disabled selected>Select A PO</option>
+                        <option>PO-2003</option>
+                        <option>PO-1456</option>
+                        <option>PO-7865</option>
+                        <option>PO-2356</option>
+                    </select>
+                    <button name="add_po" id="add_po" class="btn btn-primary">Select</button>
+                </div>
+            </div>
+            <div class="row ">
+                <span class="my-2 mx-auto w-auto">OR</span>
+            </div>
+            <div class="row">
+                <div>
+                    PO-
+                    <input class="poselect" placeholder='0000'>
+                    <button name="create_po" id="create_po" class="btn btn-primary">Create New PO</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-1 d-flex">
+            <div class="vr p-0 h-75 m-auto"></div>
+        </div>
+        <div x-data="{ imeis: [] }" class="col-5">
+            <h2>Add By IMEI</h2>
+            <form method="post" action="./imeis">
+                {% csrf_token %}
+                <div class="row my-2 d-flex flex-column justify-content-evenly">
+                    <textarea class="flex-fill"
+                              id="bulkImeiInput"
+                              name="imeis"
+                              placeholder="Enter IMEIs separated by commas"></textarea>
+                </div>
+                <div class="row">
+                    <button class='btn btn-primary' type="submit">Submit</button>
+                </div>
+            </form>
+        </div>
+    {% endblock content %}

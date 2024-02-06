@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+{% block title %}
+    {{ page_title }}
+{% endblock title %}
+{% block content %}
+    {% load static %}
+    <div class="row my-2 p-2 border rounded">
+        <div class="col-md-4 d-flex flex-column"
+             id="filter_body"
+             data-filter-data="{{ statuses }}">
+            <h2>Filters</h2>
+            <select class='filter selectHide'
+                    id="modelSelect"
+                    multiple
+                    style="width: 100%">
+                {% for model_group in device_attributes.model %}
+                    <option value="{{ model_group }}">{{ model_group }}</option>
+                {% endfor %}
+            </select>
+            <select class='filter selectHide'
+                    id="colorSelect"
+                    multiple
+                    style="width: 100%">
+                {% for color in device_attributes.color %}<option value="{{ color }}">{{ color }}</option>{% endfor %}
+            </select>
+            <select class='filter selectHide'
+                    id="gradeSelect"
+                    multiple
+                    style="width: 100%">
+                {% for grade in device_attributes.grade %}<option value="{{ grade }}">{{ grade }}</option>{% endfor %}
+            </select>
+            <select class='filter selectHide'
+                    id="statusSelect"
+                    multiple
+                    style="width: 100%">
+                {% for status in  device_attributes.status %}<option value="{{ status }}">{{ status }}</option>{% endfor %}
+            </select>
+            <p>
+                <label for="amount">Battery range:</label>
+                <input class="ranges" type="text" id="amount" readonly>
+            </p>
+            <div id="slider-range"></div>
+        </div>
+        <div class="col-md-4 d-flex flex-column justify-content-between">
+            <h2>Grouping</h2>
+            <div class="flex-fill d-flex justify-content-between flex-column pb-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="modelGroupSwitch"
+                           value="model">
+                    <label class="form-check-label" for="modelGroupSwitch">Model</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="capacityGroupSwitch"
+                           value="capacity">
+                    <label class="form-check-label" for="capacityGroupSwitch">Capacity</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="colorGroupSwitch"
+                           value="color">
+                    <label class="form-check-label" for="colorGroupSwitch">Color</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="gradeGroupSwitch"
+                           value="grade">
+                    <label class="form-check-label" for="gradeGroupSwitch">Grade</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="statusGroupSwitch"
+                           value="status">
+                    <label class="form-check-label" for="statusGroupSwitch">Status</label>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 d-flex flex-column justify-content-between">
+            <h2>Bulk IMEI Lookup</h2>
+            <textarea class="filter flex-fill"
+                      id="bulkImeiInput"
+                      placeholder="Enter IMEIs separated by commas"></textarea>
+        </div>
+    </div>
+    <div class="row my-2">
+        <table id="invTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>IMEI</th>
+                    <th>Model</th>
+                    <th>Capacity</th>
+                    <th>Color</th>
+                    <th>Grade</th>
+                    <th>Battery</th>
+                    <th>Status</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+    <script src="{% static 'js/inventorydataTable.js' %}"></script>
+{% endblock content %}

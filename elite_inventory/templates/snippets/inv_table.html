@@ -1,0 +1,88 @@
+<!-- Start of table -->
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th scope="col" class="id col-2" x-show="states.dateChecked" x-transition>Date Created</th>
+      <th scope="col" class="date col-2" x-show="states.idChecked" x-transition>ID</th>
+      <th scope="col"
+          class="info col-6"
+          x-show="states.infoChecked"
+          x-transition>Info</th>
+      <th scope="col"
+          class="status col-2"
+          x-show="states.statusChecked"
+          x-transition>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in table %}
+      <tr scope="row">
+        <td class="border px-4 py-2 date"
+            x-show="states.dateChecked"
+            x-transition>{{ item.date_creation|date:"d-m-y" }}</td>
+        <td class="border px-4 py-2 id" x-show="states.idChecked" x-transition>
+          <button hx-get="/{{ item.order_id }}"
+                  hx-target="#modals-here"
+                  hx-trigger="click"
+                  @click="modalShow =! modalShow"
+                  class="btn btn-primary">{{ item.order_id }}</button>
+        </td>
+        {% with last_item=item.history|last %}
+          <td class="border px-4 py-2 info"
+              x-show="states.infoChecked"
+              x-transition>{{ last_item.1|title }}</td>
+        {% endwith %}
+        <td class="border px-4 py-2 status"
+            x-show="states.statusChecked"
+            x-transition>{{ item.status|title }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<!-- End of table -->
+<!-- Pagination Controls -->
+<div class="mt-4" id="paginationControls">
+  <label for="page">Page</label>
+  <select hx-trigger='change'
+          hx-get=""
+          hx-target="#table-pagination-container"
+          hx-swap="innerHTML transition:true"
+          name='page'>
+    {% for page in table.paginator.page_range %}
+      {% with currentpage as selected %}
+        <option value="{{ page }}"
+                {% if page|slugify == selected|slugify %}selected{% endif %}>{{ page }}</option>
+      {% endwith %}
+    {% endfor %}
+  </select>
+  of {{ table.paginator.num_pages }}.
+  {% if table.has_previous %}
+    <a hx-get="?page=1&start_date={{ date.0|date:'Y-m-d' }}&end_date={{ date.1|date:'Y-m-d' }}"
+       hx-target="#table-pagination-container"
+       hx-swap="innerHTML transition:true"
+       class="mr-2">
+      <button class="btn  btn-primary">First</button>
+    </a>
+    <a hx-get="?page={{ table.previous_page_number }}&start_date={{ date.0|date:'Y-m-d' }}&end_date={{ date.1|date:'Y-m-d' }}"
+       hx-target="#table-pagination-container"
+       hx-swap="innerHTML transition:true"
+       class="mr-2">
+      <button class="btn  btn-primary">Previous</button>
+    </a>
+  {% endif %}
+  {% if table.has_next %}
+    <a hx-get="?page={{ table.next_page_number }}&start_date={{ date.0|date:'Y-m-d' }}&end_date={{ date.1|date:'Y-m-d' }}"
+       hx-target="#table-pagination-container"
+       hx-swap="innerHTML transition:true"
+       class="mr-2">
+      <button class="btn btn-primary">Next</button>
+    </a>
+    <a hx-get="?page={{ table.paginator.num_pages }}&start_date={{ date.0|date:'Y-m-d' }}&end_date={{ date.1|date:'Y-m-d' }}"
+       hx-target="#table-pagination-container"
+       hx-swap="innerHTML transition:true"
+       class="mr-2">
+      <button class="btn  btn-primary">Last</button>
+    </a>
+  {% endif %}
+</div>
+<!-- End of Pagination Controls -->

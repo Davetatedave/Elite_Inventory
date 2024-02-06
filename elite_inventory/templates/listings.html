@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}
+    {{ title }}
+{% endblock title %}
+{% block content %}
+    {% load static %}
+    <h1>Backmarket Listings</h1>
+    <!-- djlint:off -->
+                    <table id="BMlistings" style="width:100%">
+                        <thead>
+                            <input type="checkbox" id="macToggle" />
+                            Include Macs
+                            <tr>
+                                <th>SKU</th>
+                                <th>Product Name</th>
+                                <th>Stock Listed</th>
+                                <th>Stock Available</th>
+                                <th>Adjust Stock</th>
+            </tr>
+        </thead>
+        <tbody>
+<!-- djlint:on -->
+</tbody>
+</table>
+<script src="{% static 'js/listingsTable.js' %}"></script>
+{% endblock content %}

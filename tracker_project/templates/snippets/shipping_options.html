@@ -1,5 +1,0 @@
-<select class="form-control" id="shippingPrice" name="service">
-    {% for service in services %}
-        <option value="{{ service.Code }}">£{{ service.gbPrice }} - {{ service.Name |title }}</option>
-    {% endfor %}
-</select>

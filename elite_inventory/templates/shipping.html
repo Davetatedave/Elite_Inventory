@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+{% block title %}
+  {{ page_title }}
+{% endblock title %}
+{% block content %}
+  <div x-data="{
+    {% for column in columns %}{{ column.name }}_show:$persist(true).as('{{ column.name }}_show'),{% endfor %}
+    }">
+    <div class="dropdown ms-auto" x-data="{ dropdownShow: false }">
+      <button class="btn btn-secondary dropdown-toggle"
+              type="button"
+              id="columnDropdown"
+              @click="dropdownShow =! dropdownShow"
+              x-show="activeTab == 'individual'"
+              aria-haspopup="true"
+              aria-expanded="false">Columns</button>
+      <div class="dropdown-men"
+           x-show="dropdownShow"
+           aria-labelledby="columnDropdown"
+           x-cloak
+           @click.outside="dropdownShow = false">
+        {% for column in columns %}
+          <div>
+            <input @click="{{ column.name }}_show = ! {{ column.name }}_show"
+                   type="checkbox"
+                   id="toggle_{{ column.name }}"
+                   x-model="{{ column.name }}_show"
+                   :checked="{{ column.name }}_show">
+            <label for="toggle_{{ column.name }}">{{ column.verbose_name }}</label>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <table class="table table-striped" x-data="{ tableData:{{ table_json }} }">
+      <thead>
+        <tr>
+          {% for column in columns %}<td x-show="{{ column.name }}_show" x-cloak>{{ column.verbose_name }}</td>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for data in table_data %}
+          <template x-for="data in table_json">
+            <tr>
+              {% comment %} <td x-cloak x-show="order_id_show" class="border px-4 py-2 info" x-transition>{{ data.order_id }}</td>
+            <td x-cloak x-show="ol_state_show" class="border px-4 py-2 info" x-transition>{{ data.ol_state }}</td>
+            <td x-cloak x-show="shipper_show" class="border px-4 py-2 info" x-transition>{{ data.shipper }}</td>
+            <td x-cloak x-show="tracking_number_show" class="border px-4 py-2 info" x-transition>{{ data.tracking_number }}</td>
+            <td x-cloak x-show="date_creation_show" class="border px-4 py-2 info" x-transition>{{ data.date_creation|date:"d-m-y" }}</td>
+            <td x-cloak x-show="date_shipping_show" class="border px-4 py-2 info" x-transition>{{ data.date_shipping|date:"d-m-y" }}</td>
+            <td x-cloak x-show="Shipping_Status_show" class="border px-4 py-2 info" x-transition>{{ data.Shipping_Status }}</td>
+            <td x-cloak x-show="Expected_Arrival_show" class="border px-4 py-2 info" x-transition>{{ data.Expected_Arrival|date:"d-m-y" }}</td>
+            <td x-cloak x-show="Arrival_Status_show" class="border px-4 py-2 info" x-transition>{{ data.status }}</td>
+            {% with last_item=data.history|last %}
+              <td x-cloak x-show="history_show" class="border px-4 py-2 info" x-transition>{{ last_item.1|title }}</td>
+              {% endwith %} {% endcomment %}
+              <td>{{ data.order_id }}</td>
+            </tr>
+          </template>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Pagination Controls -->
+    <div class="mt-4" id="paginationControls">
+      <label for="page">Page</label>
+      <select hx-trigger='change'
+              hx-get=""
+              hx-target="#table-pagination-container"
+              hx-swap="innerHTML transition:true"
+              name='page'>
+        {% for page in table_data.paginator.page_range %}
+          {% with currentpage as selected %}
+            <option value="{{ page }}"
+                    {% if page|slugify == selected|slugify %}selected{% endif %}>{{ page }}</option>
+          {% endwith %}
+        {% endfor %}
+      </select>
+      of {{ table_data.paginator.num_pages }}.
+      {% if table_data.has_previous %}
+        <a hx-get="?page=1&start_date={{ date.0|date:'Y-m-d' }}&end_date={{ date.1|date:'Y-m-d' }}"
+           hx-target="#table-pagination-container"
+           hx-swap="innerHTML transition:true"
+           class="mr-2">
+          <button class="btn  btn-primary">First</button>
+        </a>
+        <a hx-get="?page={{ table.previous_page_number }}&start_date={{ date.0|date:'Y-m-d' }}&end_date={{ date.1|date:'Y-m-d' }}"
+           hx-target="#table-pagination-container"
+           hx-swap="innerHTML transition:true"
+           class="mr-2">
+          <button class="btn  btn-primary">Previous</button>
+        </a>
+      {% endif %}
+      {% if table_data.has_next %}
+        <a hx-get="?page={{ table_data.next_page_number }}&start_date={{ date.0|date:'Y-m-d' }}&end_date={{ date.1|date:'Y-m-d' }}"
+           hx-target="#table-pagination-container"
+           hx-swap="innerHTML transition:true"
+           class="mr-2">
+          <button class="btn btn-primary">Next</button>
+        </a>
+        <a hx-get="?page={{ table_data.paginator.num_pages }}&start_date={{ date.0|date:'Y-m-d' }}&end_date={{ date.1|date:'Y-m-d' }}"
+           hx-target="#table-pagination-container"
+           hx-swap="innerHTML transition:true"
+           class="mr-2">
+          <button class="btn  btn-primary">Last</button>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+{% endblock content %}
