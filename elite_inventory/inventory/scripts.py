@@ -383,28 +383,17 @@ class DHLAPI:
 
     @classmethod
     def get_available_shipping(cls, query):
-        try:
-            logger.debug(f"Requesting DHL API with query: {query}")
-            response = requests.get(
-                url=f"{cls.BASE_URL}/rates", headers=cls.HEADERS, params=query
-            )
-            response.raise_for_status()  # This will raise an exception for HTTP errors
-        except requests.RequestException as e:
-            logger.error(f"Request failed: {e}")
-            return []  # Or handle the error as appropriate
-
-        logger.debug(f"Response status: {response.status_code}")
-        logger.debug(f"Response headers: {response.headers}")
-        logger.debug(f"Response body: {response.text}")
-
+        logger.debug(f"Querying DHL API with {cls.HEADERS}")
+        response = requests.get(
+            url=f"{cls.BASE_URL}/rates", headers=cls.HEADERS, params=query
+        )
         services = []
-        try:
-            # Extract and summarize information
-            for product in response.json()["products"]:
-                product_name = product.get("productName", "N/A")
-                product_code = product.get("productCode", "N/A")
-                weight_provided = product.get("weight", {}).get("provided", "N/A")
-                total_prices = product.get("totalPrice", [])
+
+        for product in response.json()["products"]:
+            product_name = product.get("productName", "N/A")
+            product_code = product.get("productCode", "N/A")
+            weight_provided = product.get("weight", {}).get("provided", "N/A")
+            total_prices = product.get("totalPrice", [])
 
             # Prices in GBP and EUR
             price_gbp = next(
@@ -433,11 +422,9 @@ class DHLAPI:
                     "euPrice": price_eur,
                 }
             )
-            sorted_services = sorted(services, key=lambda x: x["gbPrice"])
-            return sorted_services
-        except Exception as e:
-            logger.error(f"Error processing response: {e}")
-            return []
+
+        sorted_services = sorted(services, key=lambda x: x["gbPrice"])
+        return sorted_services
 
 
 def calculateSKU(phoneData):

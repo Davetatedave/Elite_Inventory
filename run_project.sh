@@ -2,7 +2,7 @@
 
 # Assuming cloud_sql_proxy is already executable and in your PATH
 # or adjust the path to where your cloud_sql_proxy binary is located.
-cloudSqlProxyCommand="./cloud-sql-proxy --port 5432 elite-innovations-cloud:us-central1:eliteinventory &"
+cloudSqlProxyCommand="./cloud-sql-proxy --port 5432 elite-inn-inventory:europe-west1:eliteinventory &"
 eval $cloudSqlProxyCommand
 
 # Navigate to the project directory

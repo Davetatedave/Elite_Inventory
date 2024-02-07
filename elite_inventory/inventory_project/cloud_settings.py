@@ -13,20 +13,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 from google.cloud import secretmanager
-import logging
-import sys
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    stream=sys.stdout,
-)
-
-# Configure a logger for your DHLAPI class
-logger = logging.getLogger("DHLAPI")
 
 
+# Access the secret version
 def access_secret_version(secret_id, version_id="latest"):
     """
     Access a secret version in Secret Manager.
