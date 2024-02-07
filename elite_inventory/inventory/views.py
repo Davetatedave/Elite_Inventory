@@ -19,12 +19,18 @@ from django.views.generic import ListView, DetailView, UpdateView
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
-from .scripts import PhoneCheckAPI as PC, calculateSKU, BackMarketAPI as BM
+from .scripts import (
+    PhoneCheckAPI as PC,
+    calculateSKU,
+    BackMarketAPI as BM,
+    DHLAPI as DHL,
+)
 from collections import defaultdict
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 import requests
 import json
+from django.conf import settings
 
 
 def index(request):
@@ -542,52 +548,10 @@ class orderDetail(DetailView):
 
 
 def getShippingRates(request):
+
     query = request.POST.dict()
-    print(query)
-    headers = {
-        "Authorization": "Basic YXBNM2pZNWFNOG5aMGI6QiEwbEJeMXdYIzRzSiQ2eQ==",
-    }
-    response = requests.get(
-        url="https://express.api.dhl.com/mydhlapi/rates", headers=headers, params=query
-    )
-    services = []
-    # Example to extract and summarize information
-    for product in response.json()["products"]:
-        product_name = product.get("productName", "N/A")
-        product_code = product.get("productCode", "N/A")
-        weight_provided = product.get("weight", {}).get("provided", "N/A")
-        total_prices = product.get("totalPrice", [])
-
-        # Prices in GBP and EUR
-        price_gbp = next(
-            (
-                price["price"]
-                for price in total_prices
-                if price["priceCurrency"] == "GBP"
-            ),
-            "N/A",
-        )
-        price_eur = next(
-            (
-                price["price"]
-                for price in total_prices
-                if price["priceCurrency"] == "EUR"
-            ),
-            "N/A",
-        )
-
-        services.append(
-            {
-                "Name": product_name,
-                "Code": product_code,
-                "Weight": weight_provided,
-                "gbPrice": price_gbp,
-                "euPrice": price_eur,
-            }
-        )
-    sorted_services = sorted(services, key=lambda x: x["gbPrice"])
+    sorted_services = DHL.get_available_shipping(query)
     context = {"services": sorted_services}
-    print(context)
     html_snippet = render_to_string("./snippets/shipping_options.html", context)
 
     return HttpResponse(html_snippet)

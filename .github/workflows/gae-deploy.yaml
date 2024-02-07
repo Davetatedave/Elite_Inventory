@@ -20,7 +20,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install -r tracker_project/requirements.txt
+          pip install -r elite_inventory/requirements.txt
 
       - id: "auth"
         uses: "google-github-actions/auth@v2"

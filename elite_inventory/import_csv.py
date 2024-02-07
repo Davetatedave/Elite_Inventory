@@ -3,7 +3,7 @@ import django
 import os
 
 # Set the DJANGO_SETTINGS_MODULE environment variable to your project's settings module.
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tracker_project.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inventory_project.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
 # Call django.setup() to configure the Django environment.

@@ -12,10 +12,51 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from google.cloud import secretmanager
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    stream=sys.stdout,
+)
+
+# Configure a logger for your DHLAPI class
+logger = logging.getLogger("DHLAPI")
+
+
+def access_secret_version(secret_id, version_id="latest"):
+    """
+    Access a secret version in Secret Manager.
+    """
+    try:
+        # Build the resource name of the secret version.
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        if not project_id:
+            raise EnvironmentError("GOOGLE_CLOUD_PROJECT environment variable not set.")
+
+        name = f"projects/160120677750/secrets/{secret_id}/versions/{version_id}"
+
+        # Create the Secret Manager client.
+        client = secretmanager.SecretManagerServiceClient()
+
+        # Access the secret version.
+        response = client.access_secret_version(request={"name": name})
+
+        # Return the payload as a string.
+        return response.payload.data.decode("UTF-8")
+    except Exception as e:
+        # Consider more granular exception handling and appropriate logging for production use
+        print(f"Failed to access secret {secret_id}: {e}")
+        return None
+
+
+APIKEYS = {"DHL": access_secret_version("DHL_API_KEY")}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -26,8 +67,7 @@ SECRET_KEY = "django-insecure-6mz%13gsu0#(!+l)1n^4%ass=*lxdlg-g1kuc%iu42fl=m^vi@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["elite-innovations-cloud.uc.r.appspot.com", "127.0.0.1"]
-
+ALLOWED_HOSTS = ["elite-inn-inventory.ew.r.appspot.com", "127.0.0.1", "*"]
 
 # Application definition
 
@@ -56,7 +96,7 @@ MIDDLEWARE = [
     "simple_history.middleware.HistoryRequestMiddleware",
 ]
 
-ROOT_URLCONF = "tracker_project.urls"
+ROOT_URLCONF = "inventory_project.urls"
 
 
 TEMPLATES = [
@@ -80,7 +120,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "tracker_project.wsgi.application"
+WSGI_APPLICATION = "inventory_project.wsgi.application"
 
 
 # Database
@@ -89,9 +129,9 @@ WSGI_APPLICATION = "tracker_project.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "HOST": "/cloudsql/elite-innovations-cloud:us-central1:eliteinventory",
+        "HOST": "/cloudsql/elite-inn-inventory:europe-west1:eliteinventory",
         "NAME": "inventorydb",
-        "USER": "eliteinventory",
+        "USER": "postgres",
         "PASSWORD": "kwcp5647",
         "PORT": "5432",
     }

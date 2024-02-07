@@ -19,6 +19,8 @@ from .models import (
 )
 from collections import defaultdict
 from django.db import IntegrityError
+from django.conf import settings
+import logging
 
 # This script is used to import devices from the PhoneCheck API
 
@@ -368,6 +370,74 @@ class BackMarketAPI:
                 else:
                     sales_order.state = "Unconfirmed"
                     sales_order.save()
+
+
+logger = logging.getLogger("DHLAPI")
+
+
+class DHLAPI:
+    BASE_URL = "https://express.api.dhl.com/mydhlapi"
+    HEADERS = {
+        "Authorization": f"Basic {settings.APIKEYS['DHL']}",
+    }
+
+    @classmethod
+    def get_available_shipping(cls, query):
+        try:
+            logger.debug(f"Requesting DHL API with query: {query}")
+            response = requests.get(
+                url=f"{cls.BASE_URL}/rates", headers=cls.HEADERS, params=query
+            )
+            response.raise_for_status()  # This will raise an exception for HTTP errors
+        except requests.RequestException as e:
+            logger.error(f"Request failed: {e}")
+            return []  # Or handle the error as appropriate
+
+        logger.debug(f"Response status: {response.status_code}")
+        logger.debug(f"Response headers: {response.headers}")
+        logger.debug(f"Response body: {response.text}")
+
+        services = []
+        try:
+            # Extract and summarize information
+            for product in response.json()["products"]:
+                product_name = product.get("productName", "N/A")
+                product_code = product.get("productCode", "N/A")
+                weight_provided = product.get("weight", {}).get("provided", "N/A")
+                total_prices = product.get("totalPrice", [])
+
+            # Prices in GBP and EUR
+            price_gbp = next(
+                (
+                    price["price"]
+                    for price in total_prices
+                    if price["priceCurrency"] == "GBP"
+                ),
+                "N/A",
+            )
+            price_eur = next(
+                (
+                    price["price"]
+                    for price in total_prices
+                    if price["priceCurrency"] == "EUR"
+                ),
+                "N/A",
+            )
+
+            services.append(
+                {
+                    "Name": product_name,
+                    "Code": product_code,
+                    "Weight": weight_provided,
+                    "gbPrice": price_gbp,
+                    "euPrice": price_eur,
+                }
+            )
+            sorted_services = sorted(services, key=lambda x: x["gbPrice"])
+            return sorted_services
+        except Exception as e:
+            logger.error(f"Error processing response: {e}")
+            return []
 
 
 def calculateSKU(phoneData):
