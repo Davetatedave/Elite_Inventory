@@ -35,4 +35,4 @@ jobs:
 
       - name: Deploy to Google App Engine
         run: |
-          gcloud app deploy tracker_project/app.yaml
+          gcloud app deploy inventory_project/app.yaml
