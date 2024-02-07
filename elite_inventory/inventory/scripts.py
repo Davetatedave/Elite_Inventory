@@ -174,7 +174,6 @@ class BackMarketAPI:
     def get_listings(cls, start, page_length):
         results = []
         skus_to_fetch = []
-
         # Fetch listings in batches and collect skus to fetch in a single query
         while True:
             querystring = {
