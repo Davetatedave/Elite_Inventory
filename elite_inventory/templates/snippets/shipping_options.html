@@ -1,5 +1,15 @@
-<select class="form-control" id="shippingPrice" name="service">
+<div x-data="{ selectedService: '{{ services.0.Code }}' }">
+    <div class="input-group mb-3" id="shippingPrice">
+        <label class="input-group-text" for="inputGroupSelect01">Price</label>
+        <select class="form-select" id="serviceSelect">
+            {% for service in services %}
+                <option value="{{ service.Code }}">£{{ service.gbPrice }} - {{ service.Name | title }}</option>
+            {% endfor %}
+        </select>
+    </div>
     {% for service in services %}
-        <option value="{{ service.Code }}">£{{ service.gbPrice }} - {{ service.Name |title }}</option>
+        <p class="estDelivery"
+           x-show="selectedService === '{{ service.Code }}'"
+           id="{{ service.Code }}">Est. Delivery: {{ service.est_delivery }}</p>
     {% endfor %}
-</select>
+</div>

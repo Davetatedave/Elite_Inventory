@@ -26,4 +26,5 @@ urlpatterns = [
     path("sales/detail/<int:pk>", views.orderDetail.as_view(), name="orderDetail"),
     path("shipping_rates/", views.getShippingRates, name="get_shipping_rates"),
     path("shipping_label/", views.buyShippingLabel, name="buyShippingLabel"),
+    path("update_address/", views.updateAddress, name="updateAddress"),
 ]
