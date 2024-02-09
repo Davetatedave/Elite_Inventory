@@ -16,11 +16,17 @@ from .models import (
     customer,
     address,
     currencies,
+    shipment,
 )
 from collections import defaultdict
 from django.db import IntegrityError
 from django.conf import settings
 import logging
+from django.http import HttpResponse, JsonResponse
+from .utils import get_mock
+import base64
+from google.cloud import storage
+
 
 # This script is used to import devices from the PhoneCheck API
 
@@ -285,6 +291,9 @@ class BackMarketAPI:
         for order in results:
             # Get or Create Shipping Address
             shipping_address, _ = address.objects.get_or_create(
+                name=order["shipping_address"]["firstName"]
+                + " "
+                + order["shipping_address"]["lastName"],
                 street=order["shipping_address"]["street"],
                 street2=order["shipping_address"]["street2"],
                 city=order["shipping_address"]["city"],
@@ -296,6 +305,9 @@ class BackMarketAPI:
 
             # Get or Create Billing Address (assuming it's different from shipping)
             billing_address, _ = address.objects.get_or_create(
+                name=order["billing_address"]["firstName"]
+                + " "
+                + order["billing_address"]["lastName"],
                 street=order["billing_address"]["street"],
                 street2=order["billing_address"]["street2"],
                 city=order["billing_address"]["city"],
@@ -382,11 +394,31 @@ class DHLAPI:
     }
 
     @classmethod
-    def get_available_shipping(cls, query):
-        logger.debug(f"Querying DHL API with {cls.HEADERS}")
+    def get_available_shipping(cls, customerid):
+
+        address = customer.objects.get(pk=customerid).shipping_address
+        data = {
+            "accountNumber": "425992913",
+            "originCountryCode": "GB",
+            "originPostalCode": "BT2 7BG",
+            "originCityName": "Belfast",
+            "destinationCountryCode": address.country,
+            "destinationPostalCode": address.postalCode,
+            "destinationCityName": address.city,
+            "weight": "0.5",
+            "length": "15",
+            "width": "10",
+            "height": "5",
+            "plannedShippingDate": datetime.datetime.now().date().strftime("%Y-%m-%d"),
+            "isCustomsDeclarable": "false",
+            "unitOfMeasurement": "metric",
+        }
+
         response = requests.get(
-            url=f"{cls.BASE_URL}/rates", headers=cls.HEADERS, params=query
+            url=f"{cls.BASE_URL}/rates", headers=cls.HEADERS, params=data
         )
+        if response.status_code != 200:
+            return HttpResponse(response.json()["detail"], status=response.status_code)
         services = []
 
         for product in response.json()["products"]:
@@ -394,24 +426,17 @@ class DHLAPI:
             product_code = product.get("productCode", "N/A")
             weight_provided = product.get("weight", {}).get("provided", "N/A")
             total_prices = product.get("totalPrice", [])
-
+            est_delivery = product["deliveryCapabilities"].get(
+                "estimatedDeliveryDateAndTime", "N/A"
+            )
+            if total_prices == []:
+                continue
             # Prices in GBP and EUR
-            price_gbp = next(
-                (
-                    price["price"]
-                    for price in total_prices
-                    if price["priceCurrency"] == "GBP"
-                ),
-                "N/A",
-            )
-            price_eur = next(
-                (
-                    price["price"]
-                    for price in total_prices
-                    if price["priceCurrency"] == "EUR"
-                ),
-                "N/A",
-            )
+            for price in total_prices:
+                if price.get("priceCurrency") == "GBP":
+                    price_gbp = price.get("price", "N/A")
+                elif price.get("priceCurrency") == "EUR":
+                    price_eur = price.get("price", "N/A")
 
             services.append(
                 {
@@ -420,11 +445,158 @@ class DHLAPI:
                     "Weight": weight_provided,
                     "gbPrice": price_gbp,
                     "euPrice": price_eur,
+                    "est_delivery": est_delivery.split("T")[0],
                 }
             )
 
         sorted_services = sorted(services, key=lambda x: x["gbPrice"])
-        return sorted_services
+        return JsonResponse({"services": sorted_services}, status=200)
+
+    @classmethod
+    def buy_shipping_label(cls, customerid, shipping_service, so):
+        customer_instance = customer.objects.get(pk=customerid)
+        ship_to_address = customer_instance.shipping_address
+        body = {
+            "valueAddedServices": [{"serviceCode": "PT"}],
+            "productCode": shipping_service,
+            "customerReferences": [{"value": "Customer reference", "typeCode": "CU"}],
+            "plannedShippingDateAndTime": f"{datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')} GMT+01:00",
+            "pickup": {"isRequested": False},
+            "outputImageProperties": {
+                "encodingFormat": "pdf",
+                "imageOptions": [
+                    {
+                        "templateName": "COMMERCIAL_INVOICE_P_10",
+                        "invoiceType": "commercial",
+                        "isRequested": False,
+                        "typeCode": "invoice",
+                    }
+                ],
+            },
+            "accounts": [{"number": "425992913", "typeCode": "shipper"}],
+            "customerDetails": {
+                "receiverDetails": {
+                    "postalAddress": {
+                        "cityName": ship_to_address.city,
+                        "countryCode": ship_to_address.country,
+                        "postalCode": ship_to_address.postalCode,
+                        "addressLine1": ship_to_address.street,
+                    },
+                    "contactInformation": {
+                        "phone": "07863679649",
+                        "companyName": "Elite Innovations",
+                        "fullName": customer_instance.name,
+                        "email": "david@eliteinnovations.co.uk",
+                    },
+                    "registrationNumbers": [
+                        {
+                            "number": "GB12345",
+                            "issuerCountryCode": "GB",
+                            "typeCode": "VAT",
+                        },
+                        {
+                            "number": "GB12345",
+                            "issuerCountryCode": "GB",
+                            "typeCode": "EOR",
+                        },
+                    ],
+                    "typeCode": "business",
+                },
+                "shipperDetails": {
+                    "postalAddress": {
+                        "cityName": "Belfast",
+                        "countryCode": "GB",
+                        "postalCode": "BT2 7BG",
+                        "addressLine1": "128a Great Victoria St",
+                    },
+                    "contactInformation": {
+                        "phone": "1212345678",
+                        "companyName": "We Sell Mobiles",
+                        "fullName": "Chris Seiffert",
+                        "email": "chris.seiffert@eliteinnovations.co.uk",
+                    },
+                    "typeCode": "business",
+                },
+            },
+            "content": {
+                "exportDeclaration": {
+                    "lineItems": [
+                        {
+                            "number": 1,
+                            "commodityCodes": [
+                                {"value": "HS1234567890", "typeCode": "outbound"}
+                            ],
+                            "priceCurrency": "GBP",
+                            "quantity": {"unitOfMeasurement": "BOX", "value": 1},
+                            "price": 150,
+                            "description": "line item description",
+                            "weight": {"netValue": 10, "grossValue": 10},
+                            "exportReasonType": "permanent",
+                            "manufacturerCountry": "CZ",
+                        }
+                    ],
+                    "exportReason": "Sale",
+                    "additionalCharges": [{"value": 10, "typeCode": "freight"}],
+                    "invoice": {
+                        "date": "2020-03-18",
+                        "number": "12345-ABC",
+                        "signatureName": "Brewer",
+                        "signatureTitle": "Mr.",
+                    },
+                    "shipmentType": "commercial",
+                },
+                "unitOfMeasurement": "metric",
+                "isCustomsDeclarable": False,
+                "incoterm": "DAP",
+                "description": "shipment description",
+                "packages": [
+                    {
+                        "customerReferences": [
+                            {"value": "Piece reference", "typeCode": "CU"}
+                        ],
+                        "weight": 0.5,
+                        "description": "Used Mobile Device (RETAIL)",
+                        "dimensions": {"length": 20, "width": 10, "height": 5},
+                    }
+                ],
+                "declaredValueCurrency": "GBP",
+                "declaredValue": 150,
+            },
+        }
+
+        # response = requests.post(
+        #     url="https://express.api.dhl.com/mydhlapi/shipments",
+        #     headers=cls.HEADERS,
+        #     json=body,
+        # )
+        mock_response = get_mock()
+        tracking_number = mock_response["shipmentTrackingNumber"]
+        tracking_url = mock_response["trackingUrl"]
+        label = mock_response["documents"][0]["content"]
+
+        # Upload the label to GCP
+        pdf_content = base64.b64decode(label)
+
+        # Initialize Google Cloud Storage client
+        storage_client = storage.Client()
+        bucket = storage_client.bucket("elite-inn-inventory.appspot.com")
+
+        # Create a new blob and upload the PDF's content
+        blob = bucket.blob(f"{customer_instance.name}_{tracking_number}.pdf")
+        blob.upload_from_string(pdf_content, content_type="application/pdf")
+        label_url = blob.public_url
+        shipment_instance = shipment(
+            so=so,
+            tracking_number=tracking_number,
+            tracking_url=tracking_url,
+            shipping_label=label_url,
+        ).save()
+        data = {
+            "tracking_number": tracking_number,
+            "tracking_url": tracking_url,
+            "label_url": label_url,
+        }
+        return JsonResponse(data, status=200)
 
 
 def calculateSKU(phoneData):

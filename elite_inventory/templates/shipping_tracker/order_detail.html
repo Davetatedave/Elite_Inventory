@@ -2,7 +2,9 @@
     <div class="d-flex flex-column col justify-content-start p-4">
         <div>
             <h3>
-                Order <a href="https://www.backmarket.co.uk/bo_merchant/orders/all?see-order-details={{ object.so }}">{{ object.so }}</a>
+                Order <a id="order"
+    href="https://www.backmarket.co.uk/bo_merchant/orders/all?see-order-details={{ object.so }}"
+    data-so="{{ object.so }}">{{ object.so }}</a>
             </h3>
             <h4>{{ object.date_created }}</h4>
             <h4>{{ object.customer.channel }}</h4>
@@ -15,11 +17,13 @@
             </div>
             <div class="address-display">
                 <address>
-                    <strong>{{ object.customer.name }}</strong>
+                    <strong id="customerName">{{ object.customer.shipping_address.name }}</strong>
                     <br>
                     {{ object.customer.shipping_address.street }}
                     <br>
-                    {{ object.customer.shipping_address.city }}, {{ object.customer.shipping_address.state }} {{ object.customer.shipping_address.postalCode }}
+                    {{ object.customer.shipping_address.city }}, {{ object.customer.shipping_address.state }}, {{ object.customer.shipping_address.country }},
+                    <br>
+                    {{ object.customer.shipping_address.postalCode }}
                     <br>
                 </address>
             </div>
@@ -27,8 +31,9 @@
                 <form id="addressEditForm">
                     <input type="text"
                            id="name"
-                           value="{{ object.customer.name }}"
-                           class="form-control mb-2">
+                           value="{{ object.customer.shipping_address.name }}"
+                           class="form-control mb-2"
+                           data-customer-id="{{ object.customer.pk }}">
                     <input type="text"
                            id="street"
                            value="{{ object.customer.shipping_address.street }}"
@@ -41,6 +46,7 @@
                            id="state"
                            value="{{ object.customer.shipping_address.state }}"
                            class="form-control mb-2">
+                    {% include 'snippets/country_dropdown.html' %}
                     <input type="text"
                            id="postalCode"
                            value="{{ object.customer.shipping_address.postalCode }}"
@@ -90,26 +96,27 @@
     <div class="col p-4">
         <h3>Shipping</h3>
         <span class="badge badge-default">Label</span>
-        <select id="shipperSelect" style="width: 100%">
-            <option value="DHL">DHL</option>
-            <option value="UPS">UPS</option>
-        </select>
         <div class="input-group my-2">
-            <button class="input-group-text" id="getShippingPrice">
+            <button class="input-group-text"
+                    id="getShippingPrice"
+                    data-customer="{{ object.customer.pk }}">
                 <i class="bi bi-arrow-clockwise"></i>
             </button>
-            <input readonly
-                   type="text"
-                   class="form-control"
-                   placeholder=""
-                   id="shippingPrice"
-                   aria-label="Shipping Price"
-                   aria-describedby="basic-addon1">
+            <select id="shipperSelect" class="form-control">
+                <option value="DHL">DHL</option>
+                <option value="UPS">UPS</option>
+            </select>
+        </div>
+        <div class="input-group mb-3" id="shippingPrice">
+            <label class="input-group-text" for="inputGroupSelect01">Price</label>
+            <select class="form-select" id="inputGroupSelect01">
+                <option selected>Press Refresh For Prices...</option>
+            </select>
         </div>
         <button id="buyShipping"
                 type="button"
                 class="mx-auto my-2 btn btn-primary"
-                data-customer="{{ object.pk }}">Buy Shipping</button>
+                data-customer="{{ object.customer.pk }}">Buy Shipping</button>
         <button id="printLabel"
                 type="button"
                 class="mx-auto my-2 btn btn-secondary disabled">Label</button>

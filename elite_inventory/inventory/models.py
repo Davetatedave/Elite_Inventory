@@ -114,7 +114,8 @@ class purchaseOrderItems(models.Model):
 
 
 class address(models.Model):
-    street = models.CharField(max_length=20, verbose_name="Street")
+    name = models.CharField(max_length=40, verbose_name="Name")
+    street = models.CharField(max_length=50, verbose_name="Street")
     street2 = models.CharField(max_length=20, verbose_name="Street2")
     city = models.CharField(max_length=20, verbose_name="City")
     state = models.CharField(max_length=20, verbose_name="State")
@@ -186,6 +187,9 @@ class shipment(models.Model):
         salesOrders, on_delete=models.PROTECT, verbose_name="SO", null=True
     )
     tracking_number = models.CharField(max_length=20, verbose_name="Tracking Number")
+    tracking_url = models.URLField(
+        max_length=500, null=True, verbose_name="Tracking URL"
+    )
     shipper = models.CharField(max_length=20, verbose_name="Shipper")
     date_shipped = models.DateField(verbose_name="Date Shipped", null=True)
     date_delivered = models.DateField(verbose_name="Date Delivered", null=True)
@@ -195,8 +199,8 @@ class shipment(models.Model):
     shipping_cost = models.DecimalField(
         max_digits=5, decimal_places=2, verbose_name="Shipping Cost", null=True
     )
-    shipping_label = models.CharField(
-        max_length=20, verbose_name="Shipping Label", null=True
+    shipping_label = models.URLField(
+        max_length=500, verbose_name="Shipping Label", null=True
     )
 
 

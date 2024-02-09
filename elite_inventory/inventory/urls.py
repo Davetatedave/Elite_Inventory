@@ -32,4 +32,5 @@ urlpatterns = [
         name="resolveMarketplaceSku",
     ),
     path("new_sku/", views.new_SKU, name="new_SKU"),
+    path("update_address/", views.updateAddress, name="updateAddress"),
 ]

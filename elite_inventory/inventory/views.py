@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.forms.models import model_to_dict
 from django.core import serializers
 from django.core.paginator import Paginator
 from django.utils.dateparse import parse_date
@@ -13,6 +14,7 @@ from .models import (
     salesOrders,
     salesOrderItems,
     customer,
+    address,
 )
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView, CreateView
@@ -569,127 +571,56 @@ class orderDetail(DetailView):
     template_name = "order_detail.html"
 
 
+def updateAddress(request):
+    # Ensure the request method is POST to handle form submission
+    if request.method == "POST":
+        payload = request.POST.dict()
+        customer_id = payload.pop("customer_id", None)
+
+        # Get Customer
+        customer_instance = customer.objects.get(pk=customer_id)
+
+        address_id = customer_instance.shipping_address.pk
+
+        # Construct a dictionary of fields to update
+        updated_fields = {key: value for key, value in payload.items()}
+
+        # Use the update() method on a queryset that targets only the specific address instance
+        address.objects.filter(pk=address_id).update(**updated_fields)
+
+        # Retrieve the updated address object
+        updated_address = address.objects.get(pk=address_id)
+
+        # Convert the updated address object to a dictionary
+        # You might want to explicitly specify which fields to include if there are any you want to exclude
+        address_data = model_to_dict(updated_address)
+
+        return JsonResponse(address_data)
+
+
 def getShippingRates(request):
 
-    query = request.POST.dict()
-    sorted_services = DHL.get_available_shipping(query)
-    context = {"services": sorted_services}
-    html_snippet = render_to_string("./snippets/shipping_options.html", context)
+    customer = request.POST.get("customer")
+    response = DHL.get_available_shipping(customer)
+    if response.status_code == 400:
+        error = response.content.decode("utf-8")
+        return JsonResponse({"error": error}, status=response.status_code)
 
-    return HttpResponse(html_snippet)
+    else:
+        sorted_services = json.loads(response.content.decode("utf-8"))
+        print(sorted_services)
+        html_snippet = render_to_string(
+            "./snippets/shipping_options.html", sorted_services
+        )
+
+        return HttpResponse(html_snippet)
 
 
 def buyShippingLabel(request):
-    customer = request.GET.get("customer")
+    customerId = request.GET.get("customer")
+    shipmentId = request.GET.get("shipment")
     shipping_service = request.GET.get("shipping_service")
-    imies = request.GET.getlist("imeis[]")
-    print(customer, shipping_service, imies)
-    headers = {
-        "Authorization": "Basic YXBNM2pZNWFNOG5aMGI6QiEwbEJeMXdYIzRzSiQ2eQ==",
-    }
-    # body = {
-    #     "valueAddedServices": [{"serviceCode": "PT"}],
-    #     "productCode": "U",
-    #     "customerReferences": [{"value": "Customer reference", "typeCode": "CU"}],
-    #     "plannedShippingDateAndTime": datetime.datetime()
-    #     .toISOString()
-    #     .slice(0, -4)
-    #     .replace(".", " GMT+01:00"),
-    #     "pickup": {"isRequested": false},
-    #     "outputImageProperties": {
-    #         "encodingFormat": "pdf",
-    #         "imageOptions": [
-    #             {
-    #                 "templateName": "COMMERCIAL_INVOICE_P_10",
-    #                 "invoiceType": "commercial",
-    #                 "isRequested": false,
-    #                 "typeCode": "invoice",
-    #             }
-    #         ],
-    #     },
-    #     "accounts": [{"number": "425992913", "typeCode": "shipper"}],
-    #     "customerDetails": {
-    #         "shipperDetails": {
-    #             "postalAddress": {
-    #                 "cityName": "{{ Details.data.shipping_address_town['0']}}",
-    #                 "countryCode": "{{ Details.data.shipping_address_country_code['0'] }}",
-    #                 "postalCode": "{{ Details.data.shipping_address_post_code['0']}}",
-    #                 "addressLine1": "{{ Details.data.shipping_address_house_no['0'] }} {{ Details.data.shipping_address_street_name }}",
-    #             },
-    #             "contactInformation": {
-    #                 "phone": "{{ Details.data.shipping_address_phone_number['0']}}",
-    #                 "companyName": "{{Details.data.shipping_address_first_name['0']}} {{ Details.data.shipping_address_family_name['0'] }}",
-    #                 "fullName": "{{Details.data.shipping_address_first_name['0']}} {{ Details.data.shipping_address_family_name['0'] }}",
-    #                 "email": "{{ Details.data.customer_email['0'] }}",
-    #             },
-    #             "registrationNumbers": [
-    #                 {"number": "GB12345", "issuerCountryCode": "GB", "typeCode": "VAT"},
-    #                 {"number": "GB12345", "issuerCountryCode": "GB", "typeCode": "EOR"},
-    #             ],
-    #             "typeCode": "business",
-    #         },
-    #         "receiverDetails": {
-    #             "postalAddress": {
-    #                 "cityName": "Belfast",
-    #                 "countryCode": "GB",
-    #                 "postalCode": "BT2 7BG",
-    #                 "addressLine1": "128a Great Victoria St",
-    #             },
-    #             "contactInformation": {
-    #                 "phone": "1212345678",
-    #                 "companyName": "We Sell Mobiles",
-    #                 "fullName": "Chris Seiffert",
-    #                 "email": "chris.seiffert@eliteinnovations.co.uk",
-    #             },
-    #             "typeCode": "business",
-    #         },
-    #     },
-    #     "content": {
-    #         "exportDeclaration": {
-    #             "lineItems": [
-    #                 {
-    #                     "number": 1,
-    #                     "commodityCodes": [
-    #                         {"value": "HS1234567890", "typeCode": "outbound"}
-    #                     ],
-    #                     "priceCurrency": "GBP",
-    #                     "quantity": {"unitOfMeasurement": "BOX", "value": 1},
-    #                     "price": 150,
-    #                     "description": "line item description",
-    #                     "weight": {"netValue": 10, "grossValue": 10},
-    #                     "exportReasonType": "permanent",
-    #                     "manufacturerCountry": "CZ",
-    #                 }
-    #             ],
-    #             "exportReason": "Return",
-    #             "additionalCharges": [{"value": 10, "typeCode": "freight"}],
-    #             "invoice": {
-    #                 "date": "2020-03-18",
-    #                 "number": "12345-ABC",
-    #                 "signatureName": "Brewer",
-    #                 "signatureTitle": "Mr.",
-    #             },
-    #             "shipmentType": "commercial",
-    #         },
-    #         "unitOfMeasurement": "metric",
-    #         "isCustomsDeclarable": false,
-    #         "incoterm": "DAP",
-    #         "description": "shipment description",
-    #         "packages": [
-    #             {
-    #                 "customerReferences": [
-    #                     {"value": "Piece reference", "typeCode": "CU"}
-    #                 ],
-    #                 "weight": 0.5,
-    #                 "description": "Used Mobile Device (RETAIL RETURN)",
-    #                 "dimensions": {"length": 20, "width": 10, "height": 5},
-    #             }
-    #         ],
-    #         "declaredValueCurrency": "GBP",
-    #         "declaredValue": 150,
-    #     },
-    # }
-    # response = requests.get(
-    #     url="https://express.api.dhl.com/mydhlapi/rates", headers=headers, body=body
-    # )
+    so = request.GET.get("so")
+    label = DHL.buy_shipping_label(customerId, shipping_service, so)
+
     return HttpResponse("response")

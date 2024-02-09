@@ -29,10 +29,23 @@ $("#shipperSelect").select2({
 
 document.addEventListener("htmx:afterRequest", function (evt) {
   // Toggle edit mode
+  let edited = [];
   $(".edit-toggle").click(function () {
     console.log("Edit Toggle Clicked");
     $(".address-display").hide();
     $(".address-edit").show();
+    const inputs = document.querySelectorAll(
+      '#addressEditForm input[type="text"],select'
+    );
+    inputs.forEach((input) => {
+      input.addEventListener("change", function () {
+        // Flag this input as edited by adding it to the `edited` array if not already included.
+        if (!edited.includes(this.id)) {
+          edited.push(this.id);
+          console.log(this.id + " edited");
+        }
+      });
+    });
   });
 
   // Cancel edit mode
@@ -41,25 +54,32 @@ document.addEventListener("htmx:afterRequest", function (evt) {
     $(".address-display").show();
   });
 
-  // Handle form submission (example)
+  // Handle form submission
   $("#addressEditForm").submit(function (event) {
     event.preventDefault();
-    // Here, you would collect the form data and send it to the server via AJAX or a similar method
-    const formData = {
-      name: $("#name").val(),
-      street: $("#street").val(),
-      city: $("#city").val(),
-      state: $("#state").val(),
-      postalCode: $("#postalCode").val(),
+    let formData = {
+      customer_id: $("#name").data("customer-id"), // Assuming this is correct and consistent with your form structure
     };
-    console.log(formData); // For demonstration; replace with AJAX call
 
-    // Optionally, update the display values and switch back to display mode
-    $("address").html(
-      `<strong>${formData.name}</strong><br>${formData.street}<br>${formData.city}, ${formData.state} ${formData.postalCode}<br>`
-    );
-    $(".address-edit").hide();
-    $(".address-display").show();
+    // Only include edited fields in formData
+    edited.forEach((fieldId) => {
+      formData[fieldId] = $("#" + fieldId).val();
+    });
+    $.ajax({
+      url: "/update_address/",
+      method: "POST",
+      headers: { "X-CSRFToken": Cookies.get("csrftoken") },
+      data: formData,
+
+      success: function (response) {
+        // Optionally, update the display values and switch back to display mode
+        $("address").html(
+          `<strong>${response.name}</strong><br>${response.street}<br>${response.city}, ${response.state} ${response.postalCode}<br>`
+        );
+        $(".address-edit").hide();
+        $(".address-display").show();
+      },
+    });
   });
 
   // Get Shipping Price Button
@@ -80,22 +100,17 @@ document.addEventListener("htmx:afterRequest", function (evt) {
         headers: { "X-CSRFToken": csrftoken },
         dataType: "html",
         data: {
-          accountNumber: "425992913",
-          originCountryCode: "GB",
-          originPostalCode: "BT2 7BG",
-          originCityName: "Belfast",
-          destinationCountryCode: "GB",
-          destinationPostalCode: "BT2 7BG",
-          destinationCityName: "Belfast",
-          weight: "0.5",
-          length: "15",
-          width: "10",
-          height: "5",
-          plannedShippingDate: new Date().toISOString().split("T")[0],
-          isCustomsDeclarable: "false",
-          unitOfMeasurement: "metric",
+          customer: $("#getShippingPrice").data("customer"),
+        },
+        error: function (xhr, textStatus, errorThrown) {
+          console.log("Error");
+          console.log(xhr);
+          const error = xhr.responseText;
+          $("#overlay").fadeOut(50);
+          showTooltip($(".address-display"), error);
         },
         success: function (response) {
+          $(".estDelivery").remove();
           $("#shippingPrice").replaceWith(response);
           $("#overlay").fadeOut(50);
         },
@@ -117,15 +132,17 @@ document.addEventListener("htmx:afterRequest", function (evt) {
     if (imeis.includes("Missing")) {
       showTooltip($(this), "All IMEIs Are Required");
     }
-    if ($("#shippingPrice").val() == "") {
+    if ($("#serviceSelect").val() == "") {
+      console.log($("#serviceSelect").val());
       showTooltip($(this), "Please Select Shipping Method");
     } else {
       $.ajax({
         url: "/shipping_label/",
         method: "GET",
         data: {
-          shipping_service: $("#shippingPrice").val(),
+          shipping_service: $("#serviceSelect").val(),
           customer: $("#buyShipping").data("customer"),
+          salesOrder: $("#order").data("so"),
           imeis: imeis,
         },
         success: function (response) {
