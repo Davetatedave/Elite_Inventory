@@ -20,7 +20,7 @@ from .models import (
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView, CreateView
 from django.db.models import Count
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.template.loader import render_to_string
 from .scripts import (
     PhoneCheckAPI as PC,
@@ -35,6 +35,7 @@ import requests
 import json
 from django.conf import settings
 from .forms import DeviceAttributesForm
+from google.cloud import storage
 
 
 def index(request):
@@ -554,10 +555,24 @@ def addStockImeis(request):
 
 
 def getBmOrders(request):
+    shipment.objects.all().delete()
     salesOrders.objects.all().delete()
     customer.objects.all().delete()
     BM.get_orders()
     return render(request, template_name="sales.html")
+
+
+def get_label(request, so):
+
+    shipment_instance = shipment.objects.get(so_id=so)
+    file_buffer = shipment_instance.get_label()
+    # Serve the PDF directly without streaming
+    return FileResponse(
+        file_buffer,
+        content_type="application/pdf",
+        as_attachment=True,
+        filename=f"{shipment_instance.label_blob_name}.pdf",
+    )
 
 
 class orderDetail(DetailView):

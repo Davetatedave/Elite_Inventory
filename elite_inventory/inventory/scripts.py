@@ -26,7 +26,7 @@ from django.http import HttpResponse, JsonResponse
 from .utils import get_mock
 import base64
 from google.cloud import storage
-
+import io
 
 # This script is used to import devices from the PhoneCheck API
 
@@ -572,6 +572,7 @@ class DHLAPI:
         mock_response = get_mock()
         tracking_number = mock_response["shipmentTrackingNumber"]
         tracking_url = mock_response["trackingUrl"]
+        public_tracking_url = "N/A"  # This needs calculating
         label = mock_response["documents"][0]["content"]
 
         # Upload the label to GCP
@@ -590,10 +591,32 @@ class DHLAPI:
             so_id=so,
             tracking_number=tracking_number,
             tracking_url=tracking_url,
-            shipping_label=label_url,
+            public_tracking_url=label_url,
+            label_blob_name=blob.name,
         ).save()
 
         return HttpResponse(shipment_instance, status=200)
+
+
+class GCPAPI:
+
+    BUCKET_NAME = "elite-inn-inventory.appspot.com"
+
+    @classmethod
+    def stream_gcs_file(cls, blob_name):
+
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(cls.BUCKET_NAME)
+        blob = bucket.blob(blob_name)
+
+        # Use a BytesIO buffer to hold the file content
+        file_buffer = io.BytesIO()
+        # Download the file to the buffer
+        blob.download_to_file(file_buffer)
+        # Seek to the start of the file
+        file_buffer.seek(0)
+
+        return file_buffer
 
 
 def calculateSKU(phoneData):

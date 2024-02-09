@@ -190,6 +190,9 @@ class shipment(models.Model):
     tracking_url = models.URLField(
         max_length=500, null=True, verbose_name="Tracking URL"
     )
+    public_tacking_url = models.URLField(
+        max_length=500, null=True, verbose_name="Public Tracking URL"
+    )
     shipper = models.CharField(max_length=20, verbose_name="Shipper")
     date_shipped = models.DateField(verbose_name="Date Shipped", null=True)
     date_delivered = models.DateField(verbose_name="Date Delivered", null=True)
@@ -199,9 +202,18 @@ class shipment(models.Model):
     shipping_cost = models.DecimalField(
         max_digits=5, decimal_places=2, verbose_name="Shipping Cost", null=True
     )
-    shipping_label = models.URLField(
+    label_blob_name = models.CharField(
         max_length=500, verbose_name="Shipping Label", null=True
     )
+
+    def get_label(self):
+        from .scripts import GCPAPI
+
+        if self.label_blob_name:
+            file_buffer = GCPAPI.stream_gcs_file(self.label_blob_name)
+            return file_buffer
+        else:
+            return None
 
 
 class devices(models.Model):

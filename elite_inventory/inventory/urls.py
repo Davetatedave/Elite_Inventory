@@ -38,4 +38,5 @@ urlpatterns = [
     ),
     path("new_sku/", views.new_SKU, name="new_SKU"),
     path("update_address/", views.updateAddress, name="updateAddress"),
+    path("sales/get_label/<int:so>", views.get_label, name="get_label"),
 ]
