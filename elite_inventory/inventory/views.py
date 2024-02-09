@@ -15,7 +15,7 @@ from .models import (
     customer,
 )
 from datetime import datetime, timedelta
-from django.views.generic import ListView, DetailView, UpdateView
+from django.views.generic import ListView, DetailView, UpdateView, CreateView
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
@@ -31,6 +31,7 @@ from django.db.models.signals import post_save
 import requests
 import json
 from django.conf import settings
+from .forms import DeviceAttributesForm
 
 
 def index(request):
@@ -127,6 +128,19 @@ def phoneCheck(request):
     return render(request, context=context, template_name="upload.html")
 
 
+def new_SKU(request):
+    if request.method == "POST":
+        form = DeviceAttributesForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({"message": "SKU added successfully."})
+        else:
+            return JsonResponse({"Errors": form.errors}, status=500)
+    if request.method == "GET":
+        form = DeviceAttributesForm()
+        return render(request, "new_sku.html", {"form": form})
+
+
 def newSKU(request):
     if request.method == "POST":
         model = request.POST.get("model")
@@ -164,6 +178,12 @@ def newSKU(request):
         except Exception as e:
             message = "Error adding SKU."
             return JsonResponse({"message": message, "error": str(e)}, status=500)
+
+
+class resolveMarketplaceSku(DetailView):
+    model = BackMarketListing
+    context_object_name = "listing"
+    template_name = "resolve_marketplace_sku.html"
 
 
 def addStock(request):
@@ -452,9 +472,11 @@ def BMlistingsajax(request):
         else:
             listing["stock_available"] = "SKU Mismatch"
         data.append(listing)
+
     nonelisted = BackMarketListing.objects.filter(
         sku__in=groupedStockDict.keys()
     ).values("sku", "title", "listing_id")
+
     nonelistedDict = {
         item["sku"]: (item["title"], item["listing_id"]) for item in nonelisted
     }

@@ -214,6 +214,7 @@ class BackMarketAPI:
                 listing_id=listing["listing_id"],
                 defaults={
                     "sku": sku_obj,  # Use fetched sku object if available
+                    "bm_sku": listing["sku"],
                     "title": listing["title"],
                     "price": listing["price"],
                     "min_price": listing["min_price"],

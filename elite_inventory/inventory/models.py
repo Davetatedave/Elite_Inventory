@@ -236,6 +236,7 @@ class BackMarketListing(models.Model):
     sku = models.ForeignKey(
         deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU", null=True
     )
+    bm_sku = models.CharField(max_length=20, verbose_name="BM SKU")
     title = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     min_price = models.DecimalField(

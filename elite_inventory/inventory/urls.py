@@ -26,4 +26,10 @@ urlpatterns = [
     path("sales/detail/<int:pk>", views.orderDetail.as_view(), name="orderDetail"),
     path("shipping_rates/", views.getShippingRates, name="get_shipping_rates"),
     path("shipping_label/", views.buyShippingLabel, name="buyShippingLabel"),
+    path(
+        "listings/resolve_marketplace_sku/<int:pk>",
+        views.resolveMarketplaceSku.as_view(),
+        name="resolveMarketplaceSku",
+    ),
+    path("new_sku/", views.new_SKU, name="new_SKU"),
 ]

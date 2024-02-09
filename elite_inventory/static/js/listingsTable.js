@@ -31,14 +31,20 @@ $(document).ready(function () {
       url: "/BMlistingsajax/",
       data: function (d) {
         return $.extend({}, d, { macs: $("#macToggle").is(":checked") });
-      }, // Replace with your Django view URL
+      },
       dataSrc: "data", // Data property name in the JSON response
     },
     columns: [
       {
         data: "SKU",
         render: function (data, type, row, meta) {
-          return '<a href="detail/' + row.pk + '">' + data + "</a>";
+          return data != null
+            ? '<a href="detail/' + row.pk + '">' + data + "</a>"
+            : '<a href="resolve_marketplace_sku/' +
+                row.listing_id +
+                '">' +
+                "Resolve SKU" +
+                "</a>"; // Replace 'Not specified' with any default or placeholder text
         },
         orderable: false,
       },
