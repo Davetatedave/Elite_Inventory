@@ -15,6 +15,7 @@ from .models import (
     salesOrderItems,
     customer,
     address,
+    shipment,
 )
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView, CreateView
@@ -571,6 +572,16 @@ class orderDetail(DetailView):
     template_name = "order_detail.html"
 
 
+def shipmentDetails(request, shipment_id):
+
+    shipment_in = shipment.objects.get(so_id=int(shipment_id))
+    context = model_to_dict(shipment_in)
+    print(context)
+    html_snippet = render_to_string("./snippets/shipment_details.html", context)
+
+    return HttpResponse(html_snippet)
+
+
 def updateAddress(request):
     # Ensure the request method is POST to handle form submission
     if request.method == "POST":
@@ -620,7 +631,8 @@ def buyShippingLabel(request):
     customerId = request.GET.get("customer")
     shipmentId = request.GET.get("shipment")
     shipping_service = request.GET.get("shipping_service")
-    so = request.GET.get("so")
-    label = DHL.buy_shipping_label(customerId, shipping_service, so)
+    so = request.GET.get("salesOrder")
 
-    return HttpResponse("response")
+    shipment = DHL.buy_shipping_label(customerId, shipping_service, so)
+
+    return HttpResponse(shipment)

@@ -1,5 +1,5 @@
 <div class="d-flex" id="order-details">
-    <div class="d-flex flex-column col justify-content-start p-4">
+    <div class="d-flex flex-column col-4 justify-content-start p-4">
         <div>
             <h3>
                 Order <a id="order"
@@ -57,7 +57,7 @@
             </div>
         </div>
     </div>
-    <div class="col border-start border-end overflow-auto p-4">
+    <div class="col-4 border-start border-end overflow-auto p-4">
         <h3>Line Items</h3>
         {% for item in object.items.all %}
             <div class="infobox">
@@ -93,7 +93,7 @@
             </div>
         {% endfor %}
     </div>
-    <div class="col p-4">
+    <div class="col-4 p-4">
         <h3>Shipping</h3>
         <span class="badge badge-default">Label</span>
         <div class="input-group my-2">
@@ -114,11 +114,8 @@
             </select>
         </div>
         <button id="buyShipping"
-                type="button"
                 class="mx-auto my-2 btn btn-primary"
                 data-customer="{{ object.customer.pk }}">Buy Shipping</button>
-        <button id="printLabel"
-                type="button"
-                class="mx-auto my-2 btn btn-secondary disabled">Label</button>
+        <div id="shipping-info"></div>
     </div>
 </div>

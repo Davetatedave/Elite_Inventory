@@ -586,17 +586,14 @@ class DHLAPI:
         blob.upload_from_string(pdf_content, content_type="application/pdf")
         label_url = blob.public_url
         shipment_instance = shipment(
-            so=so,
+            date_shipped=datetime.datetime.now().strftime("%Y-%m-%d"),
+            so_id=so,
             tracking_number=tracking_number,
             tracking_url=tracking_url,
             shipping_label=label_url,
         ).save()
-        data = {
-            "tracking_number": tracking_number,
-            "tracking_url": tracking_url,
-            "label_url": label_url,
-        }
-        return JsonResponse(data, status=200)
+
+        return HttpResponse(shipment_instance, status=200)
 
 
 def calculateSKU(phoneData):

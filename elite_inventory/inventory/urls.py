@@ -27,6 +27,11 @@ urlpatterns = [
     path("shipping_rates/", views.getShippingRates, name="get_shipping_rates"),
     path("shipping_label/", views.buyShippingLabel, name="buyShippingLabel"),
     path(
+        "shipment_details/<int:shipment_id>",
+        views.shipmentDetails,
+        name="shipmentDetails",
+    ),
+    path(
         "listings/resolve_marketplace_sku/<int:pk>",
         views.resolveMarketplaceSku.as_view(),
         name="resolveMarketplaceSku",
