@@ -20,7 +20,7 @@ from .models import (
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView, CreateView
 from django.db.models import Count
-from django.http import HttpResponse, JsonResponse, FileResponse
+from django.http import HttpResponse, JsonResponse, FileResponse, StreamingHttpResponse
 from django.template.loader import render_to_string
 from .scripts import (
     PhoneCheckAPI as PC,
@@ -36,6 +36,8 @@ import json
 from django.conf import settings
 from .forms import DeviceAttributesForm
 from google.cloud import storage
+import base64
+import io
 
 
 def index(request):
@@ -571,7 +573,7 @@ def get_label(request, so):
         file_buffer,
         content_type="application/pdf",
         as_attachment=True,
-        filename=f"{shipment_instance.label_blob_name}.pdf",
+        filename=f"{shipment_instance.label_blob_name}",
     )
 
 
@@ -591,7 +593,6 @@ def shipmentDetails(request, shipment_id):
 
     shipment_in = shipment.objects.get(so_id=int(shipment_id))
     context = model_to_dict(shipment_in)
-    print(context)
     html_snippet = render_to_string("./snippets/shipment_details.html", context)
 
     return HttpResponse(html_snippet)
@@ -629,8 +630,9 @@ def getShippingRates(request):
     customer = request.POST.get("customer")
     response = DHL.get_available_shipping(customer)
     if response.status_code == 400:
-        error = response.content.decode("utf-8")
-        return JsonResponse({"error": error}, status=response.status_code)
+        error = json.loads(response.content.decode("utf-8"))["detail"]
+        print(error)
+        return JsonResponse({"error": error}, status=response.status_code, safe=False)
 
     else:
         sorted_services = json.loads(response.content.decode("utf-8"))
@@ -644,10 +646,16 @@ def getShippingRates(request):
 
 def buyShippingLabel(request):
     customerId = request.GET.get("customer")
-    shipmentId = request.GET.get("shipment")
     shipping_service = request.GET.get("shipping_service")
     so = request.GET.get("salesOrder")
 
-    shipment = DHL.buy_shipping_label(customerId, shipping_service, so)
+    label = DHL.buy_shipping_label(customerId, shipping_service, so).content
 
-    return HttpResponse(shipment)
+    shipment_instance = shipment.objects.get(so_id=so)
+
+    response = HttpResponse(label, content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'inline; filename="{shipment_instance.label_blob_name}"'
+    )
+
+    return response

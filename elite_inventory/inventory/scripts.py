@@ -419,7 +419,9 @@ class DHLAPI:
             url=f"{cls.BASE_URL}/rates", headers=cls.HEADERS, params=data
         )
         if response.status_code != 200:
-            return HttpResponse(response.json()["detail"], status=response.status_code)
+            return JsonResponse(
+                response.json(), status=response.status_code, safe=False
+            )
         services = []
         for product in response.json()["products"]:
             product_name = product.get("productName", "N/A")
@@ -599,7 +601,7 @@ class DHLAPI:
             label_blob_name=blob.name,
         ).save()
 
-        return HttpResponse(shipment_instance, status=200)
+        return HttpResponse(label, status=200)
 
 
 class GCPAPI:

@@ -115,10 +115,10 @@ document.addEventListener("htmx:afterRequest", function (evt) {
           },
           error: function (xhr, textStatus, errorThrown) {
             console.log("Error");
-            console.log(xhr);
-            const error = xhr.responseText;
+            const error = JSON.parse(xhr.responseText).error;
+            console.log(error);
             $("#overlay").fadeOut(50);
-            showTooltip($(".address-display"), error);
+            showTooltip($("#editAddress"), error);
           },
           success: function (response) {
             $(".estDelivery").remove();
@@ -140,13 +140,7 @@ document.addEventListener("htmx:afterRequest", function (evt) {
         if (imei) imeis.push(imei);
         else imeis.push("Missing"); // Add the value to the array if it's not empty
       });
-      if (imeis.includes("Missing")) {
-        showTooltip($(this), "All IMEIs Are Required");
-      }
-      if ($("#serviceSelect").val() == "") {
-        console.log($("#serviceSelect").val());
-        showTooltip($(this), "Please Select Shipping Method");
-      } else {
+      if (!imeis.includes("Missing") && $("#serviceSelect").val() !== "") {
         $.ajax({
           beforeSend: function () {
             $("#overlay").fadeIn(50);
@@ -160,6 +154,14 @@ document.addEventListener("htmx:afterRequest", function (evt) {
             imeis: imeis,
           },
           success: function (response) {
+            const linkSource = `data:application/pdf;base64,${response}`;
+            const downloadLink = document.createElement("a");
+            const fileName = $("#name").val() || "shipping_label.pdf";
+
+            downloadLink.href = linkSource;
+            downloadLink.download = fileName;
+            downloadLink.click();
+
             $.ajax({
               method: "GET",
               url: "/shipment_details/" + so_id,
@@ -170,6 +172,14 @@ document.addEventListener("htmx:afterRequest", function (evt) {
             });
           },
         });
+      } else {
+        if (imeis.includes("Missing")) {
+          showTooltip($(this), "All IMEIs Are Required");
+        }
+        if ($("#serviceSelect").val() == "") {
+          console.log($("#serviceSelect").val());
+          showTooltip($(this), "Please Select Shipping Method");
+        }
       }
     });
   }

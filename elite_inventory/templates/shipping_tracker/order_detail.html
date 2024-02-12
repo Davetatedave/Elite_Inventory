@@ -13,7 +13,7 @@
         <div class="infobox d-flex flex-column mt-2">
             <div class="d-flex flex-row flex-nowrap justify-content-between">
                 <h5 class="text-decoration-underline">Shipping</h5>
-                <a href="#" class="edit-toggle"><i class="bi bi-pencil text-muted"></i></a>
+                <a href="#" class="edit-toggle"><i id="editAddress" class="bi bi-pencil text-muted"></i></a>
             </div>
             <div class="address-edit ">
                 <form id="addressEditForm" class="noneditable">
@@ -98,9 +98,9 @@
             </select>
         </div>
         <div class="input-group mb-3" id="shippingPrice">
-            <label class="input-group-text" for="inputGroupSelect01">Price</label>
-            <select class="form-select" id="inputGroupSelect01">
-                <option selected>Press Refresh For Prices...</option>
+            <label class="input-group-text" for="serviceSelect">Price</label>
+            <select class="form-select" id="serviceSelect">
+                <option selected value="">Press Refresh For Prices...</option>
             </select>
         </div>
         <button id="buyShipping"

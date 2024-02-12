@@ -20,7 +20,7 @@ load_dotenv()
 APIKEYS = {"DHL": os.getenv("DHL_API_KEY"), "USPS": os.getenv("USPS_API_KEY")}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 # Quick-start development settings - unsuitable for production
