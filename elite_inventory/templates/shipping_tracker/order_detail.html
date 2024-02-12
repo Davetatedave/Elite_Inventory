@@ -15,20 +15,8 @@
                 <h5 class="text-decoration-underline">Shipping</h5>
                 <a href="#" class="edit-toggle"><i class="bi bi-pencil text-muted"></i></a>
             </div>
-            <div class="address-display">
-                <address>
-                    <strong id="customerName">{{ object.customer.shipping_address.name }}</strong>
-                    <br>
-                    {{ object.customer.shipping_address.street }}
-                    <br>
-                    {{ object.customer.shipping_address.city }}, {{ object.customer.shipping_address.state }}, {{ object.customer.shipping_address.country }},
-                    <br>
-                    {{ object.customer.shipping_address.postalCode }}
-                    <br>
-                </address>
-            </div>
-            <div class="address-edit" style="display: none;">
-                <form id="addressEditForm">
+            <div class="address-edit ">
+                <form id="addressEditForm" class="noneditable">
                     <input type="text"
                            id="name"
                            value="{{ object.customer.shipping_address.name }}"
@@ -46,7 +34,9 @@
                            id="state"
                            value="{{ object.customer.shipping_address.state }}"
                            class="form-control mb-2">
-                    {% include 'snippets/country_dropdown.html' %}
+                    {% with object.customer.shipping_address.country as country %}
+                        {% include "snippets/country_dropdown.html" with country=country %}
+                    {% endwith %}
                     <input type="text"
                            id="postalCode"
                            value="{{ object.customer.shipping_address.postalCode }}"

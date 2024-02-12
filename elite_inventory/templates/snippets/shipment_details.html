@@ -1,5 +1,6 @@
 <button class="mx-auto my-2 btn btn-success">
-    <a class="text-decoration-none text-white" href="get_label/{{ so }}">Label</a>
+    <a class="text-decoration-none text-white"
+       href="{% url 'get_label' so %}">Label</a>
 </button>
 <p>
     Tracking Number: <strong>{{ tracking_number }}</strong>

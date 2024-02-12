@@ -190,7 +190,7 @@ class shipment(models.Model):
     tracking_url = models.URLField(
         max_length=500, null=True, verbose_name="Tracking URL"
     )
-    public_tacking_url = models.URLField(
+    public_tracking_url = models.URLField(
         max_length=500, null=True, verbose_name="Public Tracking URL"
     )
     shipper = models.CharField(max_length=20, verbose_name="Shipper")

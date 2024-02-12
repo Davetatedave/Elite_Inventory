@@ -32,6 +32,9 @@ document.addEventListener("htmx:afterRequest", function (evt) {
     console.log("Modal Loaded");
     /// Load Shipping Info
     let so_id = $("#order").data("so");
+    country = $("#countryInit").val();
+    $("#country option[value=" + country + "]").prop("selected", true);
+    console.log("Country " + country);
     $.ajax({
       method: "GET",
       url: "/shipment_details/" + so_id,
@@ -43,8 +46,7 @@ document.addEventListener("htmx:afterRequest", function (evt) {
     let edited = [];
     $(".edit-toggle").click(function () {
       console.log("Edit Toggle Clicked");
-      $(".address-display").hide();
-      $(".address-edit").show();
+      $("#addressEditForm").removeClass("noneditable");
       const inputs = document.querySelectorAll(
         '#addressEditForm input[type="text"],select'
       );
@@ -61,8 +63,7 @@ document.addEventListener("htmx:afterRequest", function (evt) {
 
     // Cancel edit mode
     $(".cancel-edit").click(function () {
-      $(".address-edit").hide();
-      $(".address-display").show();
+      $("#addressEditForm").addClass("noneditable");
     });
 
     // Handle form submission
@@ -87,8 +88,7 @@ document.addEventListener("htmx:afterRequest", function (evt) {
           $("address").html(
             `<strong>${response.name}</strong><br>${response.street}<br>${response.city}, ${response.state} ${response.postalCode}<br>`
           );
-          $(".address-edit").hide();
-          $(".address-display").show();
+          $("#addressEditForm").addClass("noneditable");
         },
       });
     });
@@ -148,6 +148,9 @@ document.addEventListener("htmx:afterRequest", function (evt) {
         showTooltip($(this), "Please Select Shipping Method");
       } else {
         $.ajax({
+          beforeSend: function () {
+            $("#overlay").fadeIn(50);
+          },
           url: "/shipping_label/",
           method: "GET",
           data: {
@@ -157,7 +160,14 @@ document.addEventListener("htmx:afterRequest", function (evt) {
             imeis: imeis,
           },
           success: function (response) {
-            $("#label").replaceWith(response);
+            $.ajax({
+              method: "GET",
+              url: "/shipment_details/" + so_id,
+              success: function (response) {
+                $("#shipping-info").replaceWith(response);
+                $("#overlay").fadeOut(50);
+              },
+            });
           },
         });
       }

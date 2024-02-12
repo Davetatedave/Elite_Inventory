@@ -409,6 +409,7 @@ class DHLAPI:
             "length": "15",
             "width": "10",
             "height": "5",
+            # "plannedShippingDate": "2024-02-09",
             "plannedShippingDate": datetime.datetime.now().date().strftime("%Y-%m-%d"),
             "isCustomsDeclarable": "false",
             "unitOfMeasurement": "metric",
@@ -420,7 +421,6 @@ class DHLAPI:
         if response.status_code != 200:
             return HttpResponse(response.json()["detail"], status=response.status_code)
         services = []
-
         for product in response.json()["products"]:
             product_name = product.get("productName", "N/A")
             product_code = product.get("productCode", "N/A")
@@ -454,7 +454,11 @@ class DHLAPI:
 
     @classmethod
     def buy_shipping_label(cls, customerid, shipping_service, so):
+        # Check if there is already a label:
+        if shipment.objects.filter(so_id=so).exists():
+            shipment.objects.filter(so_id=so).delete()
         customer_instance = customer.objects.get(pk=customerid)
+
         ship_to_address = customer_instance.shipping_address
         body = {
             "valueAddedServices": [{"serviceCode": "PT"}],
@@ -485,7 +489,7 @@ class DHLAPI:
                     "contactInformation": {
                         "phone": "07863679649",
                         "companyName": "Elite Innovations",
-                        "fullName": customer_instance.name,
+                        "fullName": ship_to_address.name,
                         "email": "david@eliteinnovations.co.uk",
                     },
                     "registrationNumbers": [
