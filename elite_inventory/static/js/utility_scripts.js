@@ -154,20 +154,13 @@ document.addEventListener("htmx:afterRequest", function (evt) {
             imeis: imeis,
           },
           success: function (response) {
-            const linkSource = `data:application/pdf;base64,${response}`;
-            const downloadLink = document.createElement("a");
-            const fileName = $("#name").val() || "shipping_label.pdf";
-
-            downloadLink.href = linkSource;
-            downloadLink.download = fileName;
-            downloadLink.click();
-
             $.ajax({
               method: "GET",
               url: "/shipment_details/" + so_id,
               success: function (response) {
                 $("#shipping-info").replaceWith(response);
                 $("#overlay").fadeOut(50);
+                window.open("get_label/" + so_id, "_blank");
               },
             });
           },

@@ -565,16 +565,19 @@ def getBmOrders(request):
 
 
 def get_label(request, so):
-
     shipment_instance = shipment.objects.get(so_id=so)
     file_buffer = shipment_instance.get_label()
+
     # Serve the PDF directly without streaming
-    return FileResponse(
+    response = FileResponse(
         file_buffer,
         content_type="application/pdf",
-        as_attachment=True,
         filename=f"{shipment_instance.label_blob_name}",
     )
+    response["Content-Disposition"] = (
+        f'inline; filename="{shipment_instance.label_blob_name}"'
+    )
+    return response
 
 
 class orderDetail(DetailView):
@@ -649,13 +652,6 @@ def buyShippingLabel(request):
     shipping_service = request.GET.get("shipping_service")
     so = request.GET.get("salesOrder")
 
-    label = DHL.buy_shipping_label(customerId, shipping_service, so).content
+    DHL.buy_shipping_label(customerId, shipping_service, so)
 
-    shipment_instance = shipment.objects.get(so_id=so)
-
-    response = HttpResponse(label, content_type="application/pdf")
-    response["Content-Disposition"] = (
-        f'inline; filename="{shipment_instance.label_blob_name}"'
-    )
-
-    return response
+    return JsonResponse({"so": so})
