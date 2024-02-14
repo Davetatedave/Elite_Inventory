@@ -8,6 +8,7 @@ handlers:
 
   - url: /.*
     script: auto
+    secure: always
 
 env_variables:
   DJANGO_SETTINGS_MODULE: "inventory_project.cloud_settings"
