@@ -14,8 +14,12 @@ from django.core.wsgi import get_wsgi_application
 env = os.getenv("GAE_VERSION", "local")
 
 if env != "local":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inventory_project.cloud_settings")
+    os.environ.setdefault(
+        "DJANGO_SETTINGS_MODULE", "inventory_project.settings.cloud_settings"
+    )
 else:
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "inventory_project.settings")
+    os.environ.setdefault(
+        "DJANGO_SETTINGS_MODULE", "inventory_project.settings.settings"
+    )
 
 application = get_wsgi_application()

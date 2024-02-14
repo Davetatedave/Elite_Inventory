@@ -342,3 +342,12 @@ background-color: white;
 .form-control{
   text-overflow:ellipsis;
 }
+
+.noneditable *{
+  pointer-events: none;
+  background-color: #e3e3e3 !important; /* Optional: Change the text color to make it visually less prominent */
+}
+
+.noneditable > button{
+  display: none;
+}

@@ -32,6 +32,9 @@ document.addEventListener("htmx:afterRequest", function (evt) {
     console.log("Modal Loaded");
     /// Load Shipping Info
     let so_id = $("#order").data("so");
+    country = $("#countryInit").val();
+    $("#country option[value=" + country + "]").prop("selected", true);
+    console.log("Country " + country);
     $.ajax({
       method: "GET",
       url: "/shipment_details/" + so_id,
@@ -43,8 +46,7 @@ document.addEventListener("htmx:afterRequest", function (evt) {
     let edited = [];
     $(".edit-toggle").click(function () {
       console.log("Edit Toggle Clicked");
-      $(".address-display").hide();
-      $(".address-edit").show();
+      $("#addressEditForm").removeClass("noneditable");
       const inputs = document.querySelectorAll(
         '#addressEditForm input[type="text"],select'
       );
@@ -61,8 +63,7 @@ document.addEventListener("htmx:afterRequest", function (evt) {
 
     // Cancel edit mode
     $(".cancel-edit").click(function () {
-      $(".address-edit").hide();
-      $(".address-display").show();
+      $("#addressEditForm").addClass("noneditable");
     });
 
     // Handle form submission
@@ -87,8 +88,7 @@ document.addEventListener("htmx:afterRequest", function (evt) {
           $("address").html(
             `<strong>${response.name}</strong><br>${response.street}<br>${response.city}, ${response.state} ${response.postalCode}<br>`
           );
-          $(".address-edit").hide();
-          $(".address-display").show();
+          $("#addressEditForm").addClass("noneditable");
         },
       });
     });
@@ -115,10 +115,10 @@ document.addEventListener("htmx:afterRequest", function (evt) {
           },
           error: function (xhr, textStatus, errorThrown) {
             console.log("Error");
-            console.log(xhr);
-            const error = xhr.responseText;
+            const error = JSON.parse(xhr.responseText).error;
+            console.log(error);
             $("#overlay").fadeOut(50);
-            showTooltip($(".address-display"), error);
+            showTooltip($("#editAddress"), error);
           },
           success: function (response) {
             $(".estDelivery").remove();
@@ -140,14 +140,11 @@ document.addEventListener("htmx:afterRequest", function (evt) {
         if (imei) imeis.push(imei);
         else imeis.push("Missing"); // Add the value to the array if it's not empty
       });
-      if (imeis.includes("Missing")) {
-        showTooltip($(this), "All IMEIs Are Required");
-      }
-      if ($("#serviceSelect").val() == "") {
-        console.log($("#serviceSelect").val());
-        showTooltip($(this), "Please Select Shipping Method");
-      } else {
+      if (!imeis.includes("Missing") && $("#serviceSelect").val() !== "") {
         $.ajax({
+          beforeSend: function () {
+            $("#overlay").fadeIn(50);
+          },
           url: "/shipping_label/",
           method: "GET",
           data: {
@@ -157,9 +154,25 @@ document.addEventListener("htmx:afterRequest", function (evt) {
             imeis: imeis,
           },
           success: function (response) {
-            $("#label").replaceWith(response);
+            $.ajax({
+              method: "GET",
+              url: "/shipment_details/" + so_id,
+              success: function (response) {
+                $("#shipping-info").replaceWith(response);
+                $("#overlay").fadeOut(50);
+                window.open("get_label/" + so_id, "_blank");
+              },
+            });
           },
         });
+      } else {
+        if (imeis.includes("Missing")) {
+          showTooltip($(this), "All IMEIs Are Required");
+        }
+        if ($("#serviceSelect").val() == "") {
+          console.log($("#serviceSelect").val());
+          showTooltip($(this), "Please Select Shipping Method");
+        }
       }
     });
   }

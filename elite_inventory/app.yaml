@@ -11,5 +11,5 @@ handlers:
     secure: always
 
 env_variables:
-  DJANGO_SETTINGS_MODULE: "inventory_project.cloud_settings"
+  DJANGO_SETTINGS_MODULE: "inventory_project.settings.cloud_settings"
   BUCKET_NAME: "inv-project-bucket"
