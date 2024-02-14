@@ -79,6 +79,7 @@ class PhoneCheckAPI:
 
     @classmethod
     def getBulkIMEI(cls, imeis):
+        breakpoint()
         reqUrl = f"{cls.BASE_URL}/getDeviceInfoforBulkIMEI"
 
         headersList = {"Content-Type": "application/json"}
@@ -90,19 +91,20 @@ class PhoneCheckAPI:
             }
         )
 
-        response = requests.request(
-            "POST", reqUrl, data=payload, headers=headersList
-        ).json()
-        df = pd.DataFrame(response.values())
-        return pd.DataFrame(response.values())
+        response = requests.request("POST", reqUrl, data=payload, headers=headersList)
+
+        devices = response.json()
+
+        return devices
 
     @classmethod
-    def addToDB(cls, df, wh="Belfast"):
+    def addToDB(cls, devices, wh="Belfast"):
         missing_sku_details = defaultdict(list)
         missing_po = []
         uploaded = []
         duplicate_devices = []
-        for _, device in df.iterrows():
+        for imei in devices:
+            device = devices[imei]
             # Attempt to fetch the PO instance
             po_instance = None
             whInstance, created = warehouse.objects.get_or_create(name=wh)
@@ -146,25 +148,26 @@ class PhoneCheckAPI:
                     for fault_description in device["Failed"]:
                         fault = faults(device=new_device, fault=fault_description)
                         fault.save()
-                uploaded.append(device["IMEI"])
+                uploaded.append(imei)
 
             except IntegrityError as e:
-                duplicate_devices.append(device["IMEI"])
+                duplicate_devices.append(imei)
 
             except Exception as e:
                 print(e)
 
-            grouped_missing_skus = [
-                {
-                    "model": key[0],
-                    "capacity": key[1],
-                    "color": key[2],
-                    "grade": key[3],
-                    "count": len(devices),
-                    "devices": devices,
-                }
-                for key, devices in missing_sku_details.items()
-            ]
+        grouped_missing_skus = [
+            {
+                "model": key[0],
+                "capacity": key[1],
+                "color": key[2],
+                "grade": key[3],
+                "count": len(devices),
+                "devices": [device["IMEI"] for device in devices],
+            }
+            for key, devices in missing_sku_details.items()
+        ]
+        print(grouped_missing_skus)
         return uploaded, grouped_missing_skus, missing_po, duplicate_devices
 
 

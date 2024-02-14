@@ -177,3 +177,31 @@ document.addEventListener("htmx:afterRequest", function (evt) {
     });
   }
 });
+
+function createsku(row_id) {
+  const row = $("#" + row_id);
+  const model = row.find(".model").html();
+  const capacity = row.find(".capacity").html();
+  const color = row.find(".color").html();
+  const grade = row.find(".grade").html();
+  const newSku = row.find("input#newsku").val();
+  const csrftoken = Cookies.get("csrftoken");
+
+  if (newSku == "") {
+    showTooltip(row.find("input#newsku"), "Please Enter SKU");
+    return;
+  }
+  $.ajax({
+    url: "/new_sku/",
+    method: "POST",
+    headers: { "X-CSRFToken": csrftoken },
+    data: {
+      model: model,
+      capacity: capacity,
+      color: color,
+      grade: grade,
+      newSku: newSku,
+    },
+    success: function (response) {},
+  });
+}

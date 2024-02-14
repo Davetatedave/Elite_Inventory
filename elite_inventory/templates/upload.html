@@ -23,20 +23,23 @@
         </thead>
         <tbody>
             {% for atrributes in missing %}
-                <tr>
-                    <td>{{ atrributes.model }}</td>
-                    <td>{{ atrributes.capacity }}</td>
-                    <td>{{ atrributes.color }}</td>
-                    <td>{{ atrributes.grade }}</td>
-                    <td>{{ atrributes.count }}</td>
-                    <td>
-                        <input id="newsku" placeholder="Create New SKU">
-                        <button class="btn btn-primary btn-sm">Create</button>
-                    </td>
-                    <td>
-                        <button class="btn btn-danger">Ignore</button>
-                    </td>
-                </tr>
+                {% with forloop.counter as rowid %}
+                    <tr id="{{ rowid }}" data-imeis="{{ atrributes.devices }}">
+                        <td class="model">{{ atrributes.model }}</td>
+                        <td class="capacity">{{ atrributes.capacity }}</td>
+                        <td class="color">{{ atrributes.color }}</td>
+                        <td class="grade">{{ atrributes.grade }}</td>
+                        <td>{{ atrributes.count }}</td>
+                        <td>
+                            <input id="newsku" placeholder="Create New SKU">
+                            <button onclick=createskuandupload({{ rowid }}) class="btn btn-primary btn-sm">Create
+                            </button>
+                        </td>
+                        <td>
+                            <button class="btn btn-danger">Ignore</button>
+                        </td>
+                    </tr>
+                {% endwith %}
             {% endfor %}
         </tbody>
     </table>

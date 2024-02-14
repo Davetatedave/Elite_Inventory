@@ -153,33 +153,13 @@ def newSKU(request):
         capacity = request.POST.get("capacity")
         color = request.POST.get("color")
         grade = request.POST.get("grade")
-        sku = request.POST.get("sku")
-        devicesUpload = request.POST.getlist("devices")
+        sku = request.POST.get("newSku")
         try:
             new_sku = deviceAttributes(
                 model=model, capacity=capacity, color=color, grade=grade, sku=sku
             )
             new_sku.save()
             message = "SKU added successfully."
-            if devicesUpload:
-                for device in devicesUpload:
-                    upload_device = devices(
-                        imei=device["IMEI"],
-                        sku_id=new_sku,
-                        deviceStatus_id=3 if device["Working"] == "Yes" else 2,
-                        battery=device["BatteryHealthPercentage"],
-                        date_tested=datetime.strptime(
-                            device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
-                        ),
-                        working=(
-                            True
-                            if device["Working"] == "Yes"
-                            else False if device["Working"] == "No" else None
-                        ),
-                        po=po_instance,
-                        warehouse_id=warehouse,
-                    )
-
             return JsonResponse({"message": message})
         except Exception as e:
             message = "Error adding SKU."
@@ -525,6 +505,7 @@ def updateBMquantity(request):
 
 def addStockImeis(request):
     if request.method == "POST":
+
         imeis = request.POST.getlist("imeis")
 
         # Replace \r\n with \n, then join and split by newlines
@@ -541,10 +522,11 @@ def addStockImeis(request):
 
         # Join the cleaned IMEIs into a single string separated by commas
         imeis_string = ",".join(imeiscleaned)
+        devices = PC.getBulkIMEI(imeis_string)
 
-        df = PC.getBulkIMEI(imeis_string)
-
-        uploaded, grouped_missing_skus, missing_po, duplicate_devices = PC.addToDB(df)
+        uploaded, grouped_missing_skus, missing_po, duplicate_devices = PC.addToDB(
+            devices
+        )
 
         context = {
             "upload": uploaded,
@@ -553,7 +535,12 @@ def addStockImeis(request):
             "duplicate": duplicate_devices,
         }
 
-    return HttpResponse(context)
+    return render(request, context=context, template_name="upload.html")
+
+
+def addImeis(request):
+    PC.addToDB(devices)
+    return JsonResponse({"message": "IMEIs added successfully."})
 
 
 def getBmOrders(request):

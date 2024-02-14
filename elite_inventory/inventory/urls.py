@@ -21,6 +21,7 @@ urlpatterns = [
     path("updateBMquantity/", views.updateBMquantity, name="updateBMquantity"),
     path("add_stock/", views.addStock, name="add_stock"),
     path("add_stock/imeis", views.addStockImeis, name="add_stock_imeis"),
+    path("add_stock/imei_upload", views.addImeis, name="add_imei"),
     path("sales/getBmOrders", views.getBmOrders, name="getBmOrders"),
     path("salesajax/", views.salesajax, name="salesAjax"),
     path("sales/detail/<int:pk>", views.orderDetail.as_view(), name="orderDetail"),
@@ -36,7 +37,7 @@ urlpatterns = [
         views.resolveMarketplaceSku.as_view(),
         name="resolveMarketplaceSku",
     ),
-    path("new_sku/", views.new_SKU, name="new_SKU"),
+    path("new_sku/", views.newSKU, name="newSKU"),
     path("update_address/", views.updateAddress, name="updateAddress"),
     path("sales/get_label/<int:so>", views.get_label, name="get_label"),
 ]
