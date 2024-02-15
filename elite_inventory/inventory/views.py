@@ -134,19 +134,6 @@ def phoneCheck(request):
     return render(request, context=context, template_name="upload.html")
 
 
-def new_SKU(request):
-    if request.method == "POST":
-        form = DeviceAttributesForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({"message": "SKU added successfully."})
-        else:
-            return JsonResponse({"Errors": form.errors}, status=500)
-    if request.method == "GET":
-        form = DeviceAttributesForm()
-        return render(request, "new_sku.html", {"form": form})
-
-
 def newSKU(request):
     if request.method == "POST":
         model = request.POST.get("model")
@@ -160,7 +147,7 @@ def newSKU(request):
             )
             new_sku.save()
             message = "SKU added successfully."
-            return JsonResponse({"message": message})
+            return JsonResponse({"NewSKU": sku, "message": message})
         except Exception as e:
             message = "Error adding SKU."
             return JsonResponse({"message": message, "error": str(e)}, status=500)
@@ -193,10 +180,12 @@ def inventory(request):
     }
 
     distinct_values["status"] = statuses = [status.status for status in statuses]
-
+    grades = ["A+", "A", "A/B", "B", "B/C", "C", "ABC"]
+    grades_json = json.dumps(grades)
     context = {
         "device_attributes": distinct_values,
         "statuses": statusesfortable,
+        "grades": grades_json,
     }
     return render(request, context=context, template_name="inventory.html")
 
@@ -359,6 +348,24 @@ def updateStatus(request):
             return JsonResponse({"message": message, "error": str(e)}, status=500)
 
 
+def updateGrade(request):
+    if request.method == "POST":
+        selected_pks = request.POST.getlist("pks")
+        grade = request.POST.get("grade")
+
+        try:
+            # Update the status of devices with the selected PKs
+            devicesToUpdate = devices.objects.filter(pk__in=selected_pks)
+            for device in devicesToUpdate:
+                device.sku.grade = grade
+                device.sku.save()
+            message = "Devices updated successfully."
+            return JsonResponse({"message": message})
+        except Exception as e:
+            message = "Error updating devices."
+            return JsonResponse({"message": message, "error": str(e)}, status=500)
+
+
 def deleteDevices(request):
     if request.method == "POST":
         selected_pks = request.POST.getlist("pks")
@@ -421,16 +428,20 @@ def salesajax(request):
 
 
 def listings(request):
-    return render(request, template_name="listings.html")
+
+    last_updated = BackMarketListing.history.latest().history_date
+    context = {"last_updated": last_updated}
+
+    return render(request, context=context, template_name="listings.html")
 
 
 def BMlistingsajax(request):
     page_length = int(request.GET.get("length", 10))
     start = int(request.GET.get("start", 0))
-    listings, total = BM.get_listings(start, page_length)
 
     groupedStock = (
-        devices.objects.filter(deviceStatus=2)
+        devices.objects.filter(deviceStatus=3)
+        .exclude(sku__grade__in=["ABC", "C"])
         .values("sku")
         .annotate(count=Count("sku"))
     )
@@ -438,6 +449,8 @@ def BMlistingsajax(request):
     print(groupedStockDict)
 
     data = []
+
+    listings = BackMarketListing.objects.filter(quantity__gt=0).order_by("quantity")
 
     for listing in listings:
         try:
@@ -503,11 +516,15 @@ def updateBMquantity(request):
             return JsonResponse({"message": message, "error": str(e)}, status=500)
 
 
+def getBMdata(request):
+    BM.get_listings()
+    return JsonResponse({"message": "Data updated successfully."})
+
+
 def addStockImeis(request):
-    if request.method == "POST":
+    if not request.GET.get("retry"):
 
         imeis = request.POST.getlist("imeis")
-
         # Replace \r\n with \n, then join and split by newlines
         imeis_string = "\n".join(imeis).replace("\r\n", "\n")
         imeis_lines = imeis_string.splitlines()
@@ -524,23 +541,23 @@ def addStockImeis(request):
         imeis_string = ",".join(imeiscleaned)
         devices = PC.getBulkIMEI(imeis_string)
 
-        uploaded, grouped_missing_skus, missing_po, duplicate_devices = PC.addToDB(
-            devices
-        )
+    else:
+        devices = {}
+        missingSkus = request.session.get("missing_sku")
+        for entry in missingSkus:
+            devices.update(entry["devices"][0])
 
-        context = {
-            "upload": uploaded,
-            "missing": grouped_missing_skus,
-            "po": missing_po,
-            "duplicate": duplicate_devices,
-        }
+    uploaded, grouped_missing_skus, missing_po, duplicate_devices = PC.addToDB(devices)
+    request.session["missing_sku"] = grouped_missing_skus
+
+    context = {
+        "upload": uploaded,
+        "missing": grouped_missing_skus,
+        "po": missing_po,
+        "duplicate": duplicate_devices,
+    }
 
     return render(request, context=context, template_name="upload.html")
-
-
-def addImeis(request):
-    PC.addToDB(devices)
-    return JsonResponse({"message": "IMEIs added successfully."})
 
 
 def getBmOrders(request):

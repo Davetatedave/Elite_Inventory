@@ -79,32 +79,26 @@ class PhoneCheckAPI:
 
     @classmethod
     def getBulkIMEI(cls, imeis):
-        breakpoint()
         reqUrl = f"{cls.BASE_URL}/getDeviceInfoforBulkIMEI"
 
         headersList = {"Content-Type": "application/json"}
 
-        payload = json.dumps(
-            {
-                **cls.INFO,
-                "IMEI": imeis,
-            }
-        )
+        payload = json.dumps({**cls.INFO, "IMEI": imeis, "archive_search": 1})
 
         response = requests.request("POST", reqUrl, data=payload, headers=headersList)
 
-        devices = response.json()
+        devicesFromPC = response.json()
 
-        return devices
+        return devicesFromPC
 
     @classmethod
-    def addToDB(cls, devices, wh="Belfast"):
+    def addToDB(cls, devicesToUpload, wh="Belfast"):
         missing_sku_details = defaultdict(list)
         missing_po = []
         uploaded = []
         duplicate_devices = []
-        for imei in devices:
-            device = devices[imei]
+        for imei in devicesToUpload:
+            device = devicesToUpload[imei]
             # Attempt to fetch the PO instance
             po_instance = None
             whInstance, created = warehouse.objects.get_or_create(name=wh)
@@ -112,6 +106,7 @@ class PhoneCheckAPI:
                 po_instance = purchaseOrders.objects.get(po=device["InvoiceNo"])
             except purchaseOrders.DoesNotExist:
                 missing_po.append(device)
+                po_instance = purchaseOrders(id=1)
             try:
                 sku_instance = calculateSKU(device)
             except ValueError as e:
@@ -123,15 +118,18 @@ class PhoneCheckAPI:
                 grade = device.get("Grade")
 
                 # Increment count in the dictionary
-                missing_sku_details[(model, capacity, color, grade)].append(device)
+                missing_sku_details[(model, capacity, color, grade)].append(
+                    {imei: device}
+                )
 
                 continue
             try:
+
                 new_device = devices(
                     imei=device["IMEI"],
                     sku=sku_instance,
                     deviceStatus_id=3 if device["Working"] == "Yes" else 2,
-                    battery=device["BatteryHealthPercentage"],
+                    battery=device["BatteryHealthPercentage"].replace("%", ""),
                     date_tested=datetime.datetime.strptime(
                         device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
                     ),
@@ -145,9 +143,14 @@ class PhoneCheckAPI:
                 )
                 new_device.save()
                 if device["Failed"]:
-                    for fault_description in device["Failed"]:
+                    if len(device["Failed"]) > 1:
+                        for fault_description in device["Failed"]:
+                            fault = faults(device=new_device, fault=fault_description)
+                            fault.save()
+                    else:
                         fault = faults(device=new_device, fault=fault_description)
                         fault.save()
+
                 uploaded.append(imei)
 
             except IntegrityError as e:
@@ -158,16 +161,17 @@ class PhoneCheckAPI:
 
         grouped_missing_skus = [
             {
+                "missing_id": key[0].replace(" ", "") + str(i),
                 "model": key[0],
                 "capacity": key[1],
                 "color": key[2],
                 "grade": key[3],
                 "count": len(devices),
-                "devices": [device["IMEI"] for device in devices],
+                "devices": devices,
             }
-            for key, devices in missing_sku_details.items()
+            for i, (key, devices) in enumerate(missing_sku_details.items())
         ]
-        print(grouped_missing_skus)
+
         return uploaded, grouped_missing_skus, missing_po, duplicate_devices
 
 
@@ -180,10 +184,11 @@ class BackMarketAPI:
     }
 
     @classmethod
-    def get_listings(cls, start, page_length):
+    def get_listings(cls, start=0, page_length=50):
         results = []
         skus_to_fetch = []
         # Fetch listings in batches and collect skus to fetch in a single query
+        next = cls.BASE_URL
         while True:
             querystring = {
                 "page": 1,  # Reset page for each batch
@@ -191,7 +196,7 @@ class BackMarketAPI:
                 "publication_state": 2,
             }
             response = requests.get(
-                cls.BASE_URL, headers=cls.HEADERS, params=querystring
+                next, headers=cls.HEADERS, params=querystring
             ).json()
             results.extend(response["results"])
             skus_to_fetch.extend(
@@ -200,6 +205,7 @@ class BackMarketAPI:
                 if "IP" in listing["sku"]
             )
             next = response.get("next", None)
+            print(next)
             if not next:
                 break
 

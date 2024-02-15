@@ -2,11 +2,14 @@
 
 ///Available Statuses for Change Status Button
 var statusdata = JSON.parse(
-  document.getElementById("filter_body").getAttribute("data-filter-data")
+  document.getElementById("filter_body").getAttribute("data-status")
 );
 
+var grades = JSON.parse(
+  document.getElementById("filter_body").getAttribute("data-grades")
+);
 // Create an array of button configurations
-var buttonConfigs = statusdata.map(function (item) {
+var statusButtons = statusdata.map(function (item) {
   return {
     text: item.fields.status, // Assuming 'status' is a property of 'fields' in each 'item'
     action: function (e, dt, node, config) {
@@ -31,15 +34,51 @@ var buttonConfigs = statusdata.map(function (item) {
         },
         traditional: true,
       });
-    }, // Additional logic for each button
+    },
+  };
+});
+
+var gradeButtons = grades.map(function (item) {
+  return {
+    text: item,
+    action: function (e, dt, node, config) {
+      var csrftoken = Cookies.get("csrftoken");
+      var selectedRows = dt.rows({ selected: true });
+      var selectedPKs = selectedRows.data().map((row) => row.pk);
+      // Send all selected PKs in a single request
+      $.ajax({
+        url: "/updateGrade/",
+        type: "POST",
+        headers: { "X-CSRFToken": csrftoken },
+        data: {
+          pks: selectedPKs.toArray(),
+          grade: item,
+        },
+        success: function (response) {
+          console.log(response.message);
+
+          setTimeout(function () {
+            dt.ajax.reload();
+          }, 200); // Adjust the delay duration as needed
+        },
+        traditional: true,
+      });
+    },
   };
 });
 
 $.fn.dataTable.ext.buttons.changeStatus = {
   extend: "collection",
   text: "Change Status",
-  buttons: buttonConfigs,
+  buttons: statusButtons,
 };
+
+$.fn.dataTable.ext.buttons.changeGrade = {
+  extend: "collection",
+  text: "Change Grade",
+  buttons: gradeButtons,
+};
+
 // Function to get the IDs or values of all checked switches
 function getCheckedGroupSwitches() {
   var grouping = [];
@@ -77,6 +116,7 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
       "selectAll",
       "selectNone",
       "changeStatus",
+      "changeGrade",
       {
         text: "Delete",
         action: function (e, dt, node, config) {

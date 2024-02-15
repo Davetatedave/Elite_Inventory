@@ -6,8 +6,17 @@ let quantityCounter = function (data, type, row) {
   <button data-id="${row.listing_id}" class="add btn btn-primary">Update</button>
 </div>`;
 };
-
 $(document).ready(function () {
+  let getBmData = function () {
+    $.ajax({
+      url: "/getBMdata/",
+      success: function (result) {
+        console.log("Got BM Data:" + result.response);
+        location.reload();
+      },
+    });
+  };
+
   let bmTable = $("#BMlistings").DataTable({
     order: [],
     scrollX: true,
@@ -16,14 +25,7 @@ $(document).ready(function () {
       "pageLength",
       {
         text: "Get New Data",
-        action: function () {
-          $.ajax({
-            url: "/getBMdata/",
-            success: function (result) {
-              console.log("Got BM Data:" + result.response);
-            },
-          });
-        },
+        action: getBmData,
       },
     ],
 
@@ -169,7 +171,7 @@ $(document).ready(function () {
         data: data,
         success: function (result) {
           console.log(result);
-          bmTable.ajax.reload();
+          getBmData();
         },
       });
     });

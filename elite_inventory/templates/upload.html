@@ -4,10 +4,8 @@
     {{ page_title }}
 {% endblock title %}
 {% block content %}
-    <h2>Uploaded Devices</h2>
-    <ul>
-        {% for imei in upload %}<li>{{ imei }}</li>{% endfor %}
-    </ul>
+    <h2>Uploaded :{{ uploaded | length }}</h2>
+    <h2>Missing POs: {{ po | length }}</h2>
     <h2>Missing SKUS</h2>
     <table class="table">
         <thead>
@@ -23,24 +21,27 @@
         </thead>
         <tbody>
             {% for atrributes in missing %}
-                {% with forloop.counter as rowid %}
-                    <tr id="{{ rowid }}" data-imeis="{{ atrributes.devices }}">
+                {% with atrributes.missing_id as rowid %}
+                    <tr id="{{ rowid }}" processed="False">
                         <td class="model">{{ atrributes.model }}</td>
                         <td class="capacity">{{ atrributes.capacity }}</td>
                         <td class="color">{{ atrributes.color }}</td>
                         <td class="grade">{{ atrributes.grade }}</td>
                         <td>{{ atrributes.count }}</td>
-                        <td>
-                            <input id="newsku" placeholder="Create New SKU">
-                            <button onclick=createskuandupload({{ rowid }}) class="btn btn-primary btn-sm">Create
-                            </button>
+                        <td class='skuInput'>
+                            <input class="newsku form-control" placeholder="Create New SKU">
+                            <button onclick="createsku('{{ rowid }}')"
+                                    class="createSku btn btn-primary btn-sm">Create</button>
                         </td>
                         <td>
-                            <button class="btn btn-danger">Ignore</button>
+                            <button class="btn btn-danger" onclick="ignoreRow('{{ rowid }}')">Ignore</button>
                         </td>
                     </tr>
                 {% endwith %}
             {% endfor %}
         </tbody>
     </table>
+    <a id="uploadButton"
+       href="{% url 'add_stock_imeis' %}?retry=True"
+       class="btn btn-success disabled">Upload</a>
 {% endblock content %}

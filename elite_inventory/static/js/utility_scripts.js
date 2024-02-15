@@ -178,13 +178,24 @@ document.addEventListener("htmx:afterRequest", function (evt) {
   }
 });
 
+function checkAllProcessed() {
+  var allProcessed = true;
+  $("#deviceTable tbody tr").each(function () {
+    if ($(this).find('td[data-processed="false"]').length > 0) {
+      allProcessed = false;
+      return false; // exit each loop early if any row is not processed
+    }
+  });
+  $("#uploadButton").toggleClass("disabled");
+}
+
 function createsku(row_id) {
   const row = $("#" + row_id);
   const model = row.find(".model").html();
   const capacity = row.find(".capacity").html();
   const color = row.find(".color").html();
   const grade = row.find(".grade").html();
-  const newSku = row.find("input#newsku").val();
+  const newSku = row.find("input.newsku").val();
   const csrftoken = Cookies.get("csrftoken");
 
   if (newSku == "") {
@@ -202,6 +213,21 @@ function createsku(row_id) {
       grade: grade,
       newSku: newSku,
     },
-    success: function (response) {},
+    success: function (response) {
+      console.log(response);
+      row.attr("processed", "True");
+      row.find(".skuInput").val(newSku).addClass("noneditable");
+      row.find(".btn").remove();
+      checkAllProcessed();
+    },
+    error: function (response) {
+      showTooltip(row.find("input#newsku"), response.error);
+    },
   });
+}
+
+function ignoreRow(row_id) {
+  const row = $("#" + row_id);
+  row.remove();
+  checkAllProcessed();
 }
