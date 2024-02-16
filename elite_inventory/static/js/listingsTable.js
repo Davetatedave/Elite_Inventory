@@ -41,12 +41,12 @@ $(document).ready(function () {
         data: "SKU",
         render: function (data, type, row, meta) {
           return data != null
-            ? '<a href="detail/' + row.pk + '">' + data + "</a>"
-            : '<a href="resolve_marketplace_sku/' +
+            ? '<a href="detail/' + row.listing_id + '">' + data + "</a>"
+            : '<button hx-get="./resolve_marketplace_sku/' +
                 row.listing_id +
-                '">' +
+                '" hx-target="#modals-here" hx-trigger="click" @click="modalShow = !modalShow" class="btn btn-warning">' +
                 "Resolve SKU" +
-                "</a>"; // Replace 'Not specified' with any default or placeholder text
+                "</button>";
         },
         orderable: false,
       },
@@ -54,21 +54,21 @@ $(document).ready(function () {
         data: "product_name",
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : "Missing"; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : "Missing";
         },
       },
       {
         data: "stock_listed",
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : 0; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : 0;
         },
       },
       {
         data: "stock_available",
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : 0; // Replace 'Not specified' with any default or placeholder text
+          return data ? data : 0;
         },
       },
       {
@@ -89,6 +89,7 @@ $(document).ready(function () {
     searching: false,
   });
   bmTable.on("init.dt", function () {
+    htmx.process(document.body);
     let intervalId;
     $(document).on("mousedown", ".plus", function () {
       let input = $(this).siblings("input");

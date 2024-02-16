@@ -7,21 +7,33 @@
     <h1>Backmarket Listings</h1>
     <h3>Last Updated: {{ last_updated }}</h3>
     <!-- djlint:off -->
-                        <table id="BMlistings" style="width:100%">
-                            <thead>
-                                <input type="checkbox" id="macToggle" />
-                                Include Macs
-                                <tr>
-                                    <th>SKU</th>
-                                    <th>Product Name</th>
-                                    <th>Stock Listed</th>
-                                    <th>Stock Available</th>
-                                    <th>Adjust Stock</th>
+                            <table id="BMlistings" style="width:100%">
+                                <thead>
+                                    <input type="checkbox" id="macToggle" />
+                                    Include Macs
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Product Name</th>
+                                        <th>Stock Listed</th>
+                                        <th>Stock Available</th>
+                                        <th>Adjust Stock</th>
             </tr>
         </thead>
         <tbody>
 <!-- djlint:on -->
 </tbody>
 </table>
+<!-- Modal -->
+<div id="modals-here"
+     class="float"
+     x-show="modalShow"
+     x-transition
+     x-cloak
+     @click.outside="modalShow = false">
+    <h2>Loading...</h2>
+</div>
+<!-- Modal Background -->
+<div x-show="modalShow" class="overlay"></div>
+<!-- End of Modal -->
 <script src="{% static 'js/listingsTable.js' %}"></script>
 {% endblock content %}

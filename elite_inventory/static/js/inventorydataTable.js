@@ -154,6 +154,7 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
       data: function (d) {
         return $.extend({}, d, {
           model: $("#modelSelect").val(),
+          capacity: $("#capacitySelect").val(),
           grade: $("#gradeSelect").val(),
           color: $("#colorSelect").val(),
           status: $("#statusSelect").val(),
@@ -246,6 +247,10 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
 $(document).ready(function () {
   $("#modelSelect").select2({
     placeholder: "Select Models",
+    theme: "classic",
+  });
+  $("#capacitySelect").select2({
+    placeholder: "Select Capacity",
     theme: "classic",
   });
   $("#colorSelect").select2({

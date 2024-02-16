@@ -201,6 +201,7 @@ def inventoryAjax(request):
     # Your data filtering and processing logic here
 
     models = request.GET.getlist("model[]", None)
+    capacity = request.GET.getlist("capacity[]", None)
     grades = request.GET.getlist("grade[]", None)
     colors = request.GET.getlist("color[]", None)
     batteryA = request.GET.get("batteryA", None)
@@ -243,6 +244,9 @@ def inventoryAjax(request):
 
     if models:
         phones = phones.filter(sku__model__in=models)
+
+    if capacity:
+        phones = phones.filter(sku__capacity__in=capacity)
 
     if colors:
         phones = phones.filter(sku__color__in=colors)
@@ -352,13 +356,21 @@ def updateGrade(request):
     if request.method == "POST":
         selected_pks = request.POST.getlist("pks")
         grade = request.POST.get("grade")
-
         try:
             # Update the status of devices with the selected PKs
             devicesToUpdate = devices.objects.filter(pk__in=selected_pks)
+            newSKUs = []
             for device in devicesToUpdate:
-                device.sku.grade = grade
-                device.sku.save()
+                new_device_attributes, created = deviceAttributes.objects.get_or_create(
+                    model=device.sku.model,
+                    color=device.sku.color,
+                    capacity=device.sku.capacity,
+                    grade=grade,
+                )
+                device.sku = new_device_attributes
+                device.save()
+                if created:
+                    newSKUs.append(new_device_attributes)
             message = "Devices updated successfully."
             return JsonResponse({"message": message})
         except Exception as e:
@@ -439,21 +451,24 @@ def BMlistingsajax(request):
     page_length = int(request.GET.get("length", 10))
     start = int(request.GET.get("start", 0))
 
+    # Get All Suitable Stock from Elite Inventory
     groupedStock = (
-        devices.objects.filter(deviceStatus=3)
+        devices.objects.filter(deviceStatus=2, battery__gte=85)
         .exclude(sku__grade__in=["ABC", "C"])
-        .values("sku")
+        .values("sku__sku")
         .annotate(count=Count("sku"))
     )
-    groupedStockDict = {item["sku"]: item["count"] for item in groupedStock}
-    print(groupedStockDict)
+    # Convert to dictionary for easy lookup
+    groupedStockDict = {item["sku__sku"]: item["count"] for item in groupedStock}
 
     data = []
-
+    # Get Backmarket Listings with stock (note, this may be old data)
     listings = BackMarketListing.objects.filter(quantity__gt=0).order_by("quantity")
 
+    # Iterate through listings and check if there is stock in Elite Inventory
     for listing in listings:
         try:
+            # Check if there is a linked SKU
             sku = listing.sku.sku
         except:
             sku = None
@@ -464,6 +479,7 @@ def BMlistingsajax(request):
             "stock_listed": listing.quantity,
             "stock_available": 0,
         }
+        # If there's a matching SKU get the available stock and remove it from the dictionary
         if sku:
             listing["stock_available"] = groupedStockDict.get(sku, 0)
             if sku in groupedStockDict:
@@ -472,29 +488,32 @@ def BMlistingsajax(request):
             listing["stock_available"] = "SKU Mismatch"
         data.append(listing)
 
+    # Find the BM Listing Data of the SKUs that are not online
     nonelisted = BackMarketListing.objects.filter(
-        sku__in=groupedStockDict.keys()
-    ).values("sku", "title", "listing_id")
+        sku__sku__in=groupedStockDict.keys()
+    ).values("sku__sku", "title", "listing_id")
 
+    # Create a dictionary of the nonelisted SKUs for easy lookup
     nonelistedDict = {
-        item["sku"]: (item["title"], item["listing_id"]) for item in nonelisted
+        item["sku__sku"]: (item["title"], item["listing_id"]) for item in nonelisted
     }
-
+    # Iterate through the nonelisted SKUs and add them to the data
     for sku, count in groupedStockDict.items():
         listing = {
             "SKU": sku,
             "listing_id": nonelistedDict.get(sku, (0, "Missing SKU on BM"))[1],
-            "product_name": nonelistedDict.get(sku, ("Missing SKU on BM"))[0].replace(
-                " - Unlocked", ""
-            ),
+            "product_name": nonelistedDict.get(sku, ("Missing SKU on BM", 0))[
+                0
+            ].replace(" - Unlocked", ""),
             "stock_listed": 0,
             "stock_available": count,
         }
         data.append(listing)
-
+    sortedData = sorted(data, key=lambda d: d["stock_listed"], reverse=True)
+    print(sortedData)
     total_records = len(data)
     response_data = {
-        "data": data[start : page_length + start],
+        "data": sortedData[start : page_length + start],
         "recordsTotal": total_records,
         "recordsFiltered": total_records,
     }

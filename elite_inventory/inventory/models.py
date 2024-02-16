@@ -22,10 +22,10 @@ class trackingDb(models.Model):
 
 
 class deviceAttributes(models.Model):
-    sku = models.CharField(max_length=20, primary_key=True, verbose_name="SKU")
+    sku = models.CharField(max_length=20, verbose_name="SKU", unique=True)
     manufacturer = models.CharField(max_length=20, verbose_name="Manufacturer")
     model = models.CharField(max_length=40, verbose_name="Model")
-    color = models.CharField(max_length=20, verbose_name="Color")
+    color = models.CharField(max_length=40, verbose_name="Color")
     capacity = models.CharField(max_length=20, verbose_name="Capacity")
     carrier = models.CharField(max_length=20, verbose_name="Carrier", blank=True)
     grade = models.CharField(max_length=20, verbose_name="Grade")
@@ -35,19 +35,16 @@ class deviceAttributes(models.Model):
 
 
 class warehouse(models.Model):
-    name = models.CharField(
-        max_length=20, primary_key=True, verbose_name="Warehouse Name"
-    )
+    name = models.CharField(max_length=20, verbose_name="Warehouse Name")
     address = models.CharField(max_length=20, verbose_name="Address", null=True)
 
 
 class deviceManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().exclude(deviceStatus__id=1)
+        return super().get_queryset().exclude(deviceStatus__id=3)
 
 
 class deviceStatus(models.Model):
-    id = models.AutoField(primary_key=True)
     status = models.CharField(
         max_length=20, verbose_name="Device Status", default="Unvailable"
     )
@@ -151,7 +148,7 @@ class customer(models.Model):
 
 
 class salesOrders(models.Model):
-    so = models.IntegerField(primary_key=True, verbose_name="SO")
+    so = models.IntegerField(unique=True, verbose_name="SO")
     customer = models.ForeignKey(
         customer, on_delete=models.PROTECT, verbose_name="Customer", null=True
     )
@@ -226,7 +223,7 @@ class devices(models.Model):
         on_delete=models.SET_DEFAULT,
         verbose_name="Device Status",
         null=True,
-        default=2,
+        default=1,
     )
     battery = models.IntegerField(verbose_name="Battery", null=True)
     date_added = models.DateField(verbose_name="Date Added", auto_now_add=True)
@@ -268,7 +265,6 @@ class BackMarketListing(models.Model):
 
 
 class faults(models.Model):
-    id = models.AutoField(primary_key=True)
     device = models.ForeignKey(devices, on_delete=models.CASCADE)
     fault = models.CharField(max_length=20, verbose_name="Fault")
     repaired = models.BooleanField(verbose_name="Repaired", default=False)

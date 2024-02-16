@@ -19,6 +19,12 @@
                     <option value="{{ model_group }}">{{ model_group }}</option>
                 {% endfor %}
             </select>
+            <select class="filter selectHide"
+                    id="capacitySelect"
+                    multiple
+                    style="width: 100%">
+                {% for capacity in device_attributes.capacity %}<option value="{{ capacity }}">{{ capacity }}</option>{% endfor %}
+            </select>
             <select class='filter selectHide'
                     id="colorSelect"
                     multiple

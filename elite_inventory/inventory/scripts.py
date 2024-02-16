@@ -93,6 +93,7 @@ class PhoneCheckAPI:
 
     @classmethod
     def addToDB(cls, devicesToUpload, wh="Belfast"):
+
         missing_sku_details = defaultdict(list)
         missing_po = []
         uploaded = []
@@ -124,11 +125,10 @@ class PhoneCheckAPI:
 
                 continue
             try:
-
                 new_device = devices(
                     imei=device["IMEI"],
                     sku=sku_instance,
-                    deviceStatus_id=3 if device["Working"] == "Yes" else 2,
+                    deviceStatus_id=2 if device["Working"] == "Yes" else 1,
                     battery=device["BatteryHealthPercentage"].replace("%", ""),
                     date_tested=datetime.datetime.strptime(
                         device["CreatedTimeStamp"].split("T")[0], "%Y-%m-%d"
@@ -185,16 +185,18 @@ class BackMarketAPI:
 
     @classmethod
     def get_listings(cls, start=0, page_length=50):
+
         results = []
         skus_to_fetch = []
         # Fetch listings in batches and collect skus to fetch in a single query
         next = cls.BASE_URL
+        querystring = {
+            "page": 1,  # Reset page for each batch
+            "page-size": 50,
+            "publication_state": 2,
+        }
         while True:
-            querystring = {
-                "page": 1,  # Reset page for each batch
-                "page-size": 50,
-                "publication_state": 2,
-            }
+
             response = requests.get(
                 next, headers=cls.HEADERS, params=querystring
             ).json()
@@ -205,17 +207,19 @@ class BackMarketAPI:
                 if "IP" in listing["sku"]
             )
             next = response.get("next", None)
+            querystring = {}
             print(next)
             if not next:
                 break
 
         # Fetch skus in a single query
+        breakpoint()
         sku_mapping = {}
         if skus_to_fetch:
             sku_objects = deviceAttributes.objects.filter(
                 sku__in=skus_to_fetch
             ).in_bulk()  # Use in_bulk for efficient lookup
-            sku_mapping = {sku: obj for sku, obj in sku_objects.items()}
+            sku_mapping = {obj.sku: obj for _, obj in sku_objects.items()}
 
         items = []
         for listing in results:
