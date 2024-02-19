@@ -198,7 +198,7 @@ def inventoryAjax(request):
     search_value = request.GET.get("search[value]", None)
     bulk_search_value = request.GET.getlist("bulk_search_value", None)
 
-    # Your data filtering and processing logic here
+    # Data filtering and processing logic here
 
     models = request.GET.getlist("model[]", None)
     capacity = request.GET.getlist("capacity[]", None)
@@ -210,7 +210,7 @@ def inventoryAjax(request):
     order = request.GET.get("order[0][column]", None)
     grouping = request.GET.getlist("grouping[]", None)
 
-    if "Deleted" in status:
+    if "Deleted" in status or "Sold" in status:
         phones = (
             devices.all_objects.select_related("sku")
             .select_related("deviceStatus")
@@ -343,7 +343,7 @@ def updateStatus(request):
         print(selected_pks)
         try:
             # Update the status of devices with the selected PKs
-            devicesToUpdate = devices.objects.filter(pk__in=selected_pks)
+            devicesToUpdate = devices.all_objects.filter(pk__in=selected_pks)
             devicesToUpdate.update(deviceStatus=status)
             message = "Devices updated successfully."
             return JsonResponse({"message": message})
@@ -420,6 +420,7 @@ def salesajax(request):
 
     data = [
         {
+            "pk": so.pk,
             "order_id": so.so,
             "order_date": so.date_created,
             "channel": so.customer.channel,
@@ -606,9 +607,10 @@ def get_label(request, so):
 class orderDetail(DetailView):
     queryset = (
         salesOrders.objects.select_related(
-            "customer__shipping_address", "customer__currency"
+            "customer__shipping_address",
+            "customer__currency",
         )
-        .prefetch_related("items")
+        .prefetch_related("items", "devices")
         .all()
     )
 
@@ -678,3 +680,31 @@ def buyShippingLabel(request):
     DHL.buy_shipping_label(customerId, shipping_service, so)
 
     return JsonResponse({"so": so})
+
+
+def commitImei(request):
+    if request.method == "POST":
+        imei = request.POST.get("imei")
+        so_id = request.POST.get("so_id")
+        soldSku = request.POST.get("sku")
+        force_commit = request.POST.get("force_commit", "false")
+        try:
+            device = devices.all_objects.get(imei=imei)
+            if not device.deviceStatus.sellable:
+                message = f"IMEI is not sellable.\n Listed as: <strong>{device.deviceStatus.status}</strong>"
+                return JsonResponse({"message": message}, status=400)
+            if device.sku.sku != soldSku and force_commit == "false":
+                message = (
+                    f"Mismatch! \n Scanned IMEI: {device.sku.sku}, Sold As: {soldSku}"
+                )
+                return JsonResponse({"message": message}, status=400)
+            device.so_id = so_id
+            device.deviceStatus_id = 5
+            device.save()
+            message = "IMEI committed successfully."
+            return JsonResponse({"message": message})
+        except Exception as e:
+            message = "Error committing IMEI:\n"
+            return JsonResponse(
+                {"message": message + " " + str(e), "error": str(e)}, status=500
+            )

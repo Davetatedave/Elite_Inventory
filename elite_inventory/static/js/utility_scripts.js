@@ -6,7 +6,7 @@ function showTooltip(element, message) {
     tooltip = $('<div class="tooltip-custom"></div>').appendTo("body");
   }
 
-  tooltip.text(message);
+  tooltip.html(message);
   let elementOffset = element.offset();
   tooltip.css({
     top: elementOffset.top - tooltip.outerHeight() - 10,

@@ -38,7 +38,7 @@ $(document).ready(function () {
         render: function (data, type, row, meta) {
           return (
             '<button hx-get="./detail/' +
-            row.order_id +
+            row.pk +
             '" hx-target="#modals-here" hx-trigger="click" @click="modalShow = !modalShow" class="btn btn-primary">' +
             row.order_id +
             "</button>"
@@ -92,7 +92,63 @@ $(document).ready(function () {
 
 document.addEventListener("htmx:afterRequest", function (evt) {
   if (evt.detail.target.id === "modals-here") {
-    console.log("Modal Loaded");
+    $(".imeis input[type='number']").on("input", function () {
+      var value = $(this).val();
+      var commitButton = $(this).siblings(".commitIMEI"); // Select the commit button
+      if (value.length > 15) {
+        // If input is longer than 15 chars, truncate it
+        $(this).val(value.substring(0, 15));
+        showTooltip($(this), "IMEI Must Be 15 Characters");
+      }
+      if (value.length >= 15) {
+        console.log("IMEI is 15");
+        // If input is longer than 15 chars, swap classes and enable the button
+        commitButton.removeClass("btn-secondary").addClass("btn-success");
+        commitButton.removeAttr("disabled");
+        commitButton.off("click").on("click", function () {
+          var imei = $(this).siblings("input").val();
+          var so_id = $("#order").data("so");
+          var requestedSKU = $(".infobox .requestedSKU strong").text();
+          var csrftoken = Cookies.get("csrftoken");
+          var forceCommit = $(this).closest("div").find(".force");
+          var forceCommitval = forceCommit.prop("checked");
+          if (forceCommit) {
+            if (!confirm("Are you sure you want to force commit this IMEI?")) {
+              return;
+            }
+          }
+          $.ajax({
+            url: "/commit_imei/",
+            method: "POST",
+            headers: { "X-CSRFToken": csrftoken },
+            data: {
+              imei: imei,
+              so_id: so_id,
+              force_commit: forceCommitval,
+              sku: requestedSKU,
+            },
+            success: function (response) {
+              console.log(response);
+              // $("#" + row_id).attr("processed", "True");
+              commitButton.remove();
+              checkAllProcessed();
+            },
+            error: function (response) {
+              showTooltip(
+                $(".imeis input[type='number']"),
+                response.responseJSON.message
+              );
+            },
+          });
+        });
+      } else {
+        console.log("IMEI is not 15 (it's" + value.length + ")");
+        // Otherwise, reset to the original state
+        commitButton.addClass("btn-secondary").removeClass("btn-success");
+        commitButton.attr("disabled", "disabled");
+      }
+    });
+
     /// Load Shipping Info
     let so_id = $("#order").data("so");
     country = $("#countryInit").val();
