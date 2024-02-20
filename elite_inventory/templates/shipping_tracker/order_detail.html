@@ -50,7 +50,7 @@
     <div class="col-4 border-start border-end overflow-auto p-4">
         <h3>Line Items</h3>
         {% for item in object.items.all %}
-            <div class="infobox">
+            <div class="infobox" data-item-id={{ item.item }}>
                 <div class="d-flex flex-column justify-content-around">
                     <p>
                         Listing: <strong>{{ item.sku.name }}</strong>
@@ -64,9 +64,20 @@
                     <p>
                         Quantity: <strong>{{ item.quantity }}</strong>
                     </p>
-                </div>
-                {% with ''|center:item.quantity as range %}
-                    {% for _ in range %}
+                    {% with object.devices.all|length  as commited %}
+                        <p>Commited {{ commited }} of {{ item.quantity }} :</p>
+                        {% for device in object.devices.all %}
+                            {% if device.sales_order_item_id == item.item %}
+                                <div class="input-group commitedImei">
+                                    <p class="form-control m-0">{{ device.imei }}</p>
+                                    <i class="bg-warning input-group-text bi bi-x removeIMEI"
+                                       data-device="{{ device.pk }}"></i>
+                                </div>
+                                <br>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% if commited < item.quantity %}
                         <div class="input-group input-group-sm my-2 imeis">
                             <input id="imeiInput{{ forloop.counter }}"
                                    title="Scan IMEI"
@@ -81,10 +92,10 @@
                                    type="checkbox"
                                    class="form-check-input h-auto force">
                         </div>
-                    {% endfor %}
+                    {% endif %}
                 {% endwith %}
-            </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
     </div>
     <div class="col-4 p-4">
         <h3>Shipping</h3>

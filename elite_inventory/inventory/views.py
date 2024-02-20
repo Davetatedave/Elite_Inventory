@@ -686,6 +686,7 @@ def commitImei(request):
     if request.method == "POST":
         imei = request.POST.get("imei")
         so_id = request.POST.get("so_id")
+        item_id = request.POST.get("item_id")
         soldSku = request.POST.get("sku")
         force_commit = request.POST.get("force_commit", "false")
         try:
@@ -700,6 +701,7 @@ def commitImei(request):
                 return JsonResponse({"message": message}, status=400)
             device.so_id = so_id
             device.deviceStatus_id = 5
+            device.sales_order_item_id = item_id
             device.save()
             message = "IMEI committed successfully."
             return JsonResponse({"message": message})
@@ -708,3 +710,13 @@ def commitImei(request):
             return JsonResponse(
                 {"message": message + " " + str(e), "error": str(e)}, status=500
             )
+
+
+def removeImei(request):
+    device_id = request.POST.get("device")
+    deviceIn = devices.all_objects.get(pk=device_id)
+    deviceIn.so_id = None
+    deviceIn.sales_order_item_id = None
+    deviceIn.deviceStatus_id = 1
+    deviceIn.save()
+    return JsonResponse({"message": "IMEI removed successfully."})

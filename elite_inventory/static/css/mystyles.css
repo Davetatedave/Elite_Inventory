@@ -178,6 +178,7 @@ input::-webkit-inner-spin-button {
   position: fixed;
   top:20%;
   left:30%;
+  width: auto;
 }
 
 #mainContent {
@@ -380,3 +381,6 @@ background-color: white;
   border-color: red!important;
 }
 
+.removeIMEI{
+  cursor: pointer;
+}

@@ -41,7 +41,7 @@ class warehouse(models.Model):
 
 class deviceManager(models.Manager):
     def get_queryset(self):
-        return super().get_queryset().exclude(deviceStatus_id__in=[3, 5])
+        return super().get_queryset().exclude(deviceStatus_id__in=[3])
 
 
 class deviceStatus(models.Model):
@@ -239,6 +239,15 @@ class devices(models.Model):
         null=True,
         related_name="devices",
     )
+    sales_order_item = models.ForeignKey(
+        salesOrderItems,
+        on_delete=models.SET_NULL,
+        verbose_name="Sales Order Item",
+        null=True,
+        blank=True,
+        related_name="devices",
+    )
+
     warehouse = models.ForeignKey(
         warehouse, on_delete=models.PROTECT, verbose_name="Warehouse", null=True
     )

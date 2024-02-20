@@ -42,4 +42,5 @@ urlpatterns = [
     path("update_address/", views.updateAddress, name="updateAddress"),
     path("sales/get_label/<int:so>", views.get_label, name="get_label"),
     path("commit_imei/", views.commitImei, name="commitImei"),
+    path("remove_imei/", views.removeImei, name="removeImei"),
 ]
