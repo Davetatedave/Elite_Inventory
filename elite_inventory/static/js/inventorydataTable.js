@@ -15,14 +15,33 @@ var statusButtons = statusdata.map(function (item) {
     action: function (e, dt, node, config) {
       var csrftoken = Cookies.get("csrftoken");
       var selectedRows = dt.rows({ selected: true });
-      var selectedPKs = selectedRows.data().map((row) => row.pk);
+      var soldDevices = [];
+      var selectedPKs = [];
+      selectedRows.data().each(function (row) {
+        if (row.status != "Sold") {
+          selectedPKs.push(row.pk);
+        } else {
+          soldDevices.push(row.imei);
+        }
+      });
+      if (soldDevices.length > 0 && soldDevices.length < 11) {
+        alert(
+          "The following devices are already sold: " +
+            soldDevices.join(", ") +
+            "\nRemove them from POs to update status."
+        );
+      }
+      if (soldDevices.length > 10) {
+        alert("Cannot Update Status of Sold Devices. Remove them from POs");
+      }
+      console.log(selectedPKs);
       // Send all selected PKs in a single request
       $.ajax({
         url: "/updateStatus/",
         type: "POST",
         headers: { "X-CSRFToken": csrftoken },
         data: {
-          pks: selectedPKs.toArray(),
+          pks: selectedPKs,
           status: item.pk,
         },
         success: function (response) {
@@ -220,7 +239,13 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         visible: grouping.includes("status") || grouping.length === 0,
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : "Not specified"; // Replace 'Not specified' with any default or placeholder text
+          return data == "Sold"
+            ? '<a href="/sales/?so=' +
+                row.so +
+                "&so_id=" +
+                row.so_id +
+                '"class="btn btn-primary">Sold</a>'
+            : data; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {

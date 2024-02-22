@@ -113,7 +113,7 @@ class purchaseOrderItems(models.Model):
 class address(models.Model):
     name = models.CharField(max_length=40, verbose_name="Name")
     street = models.CharField(max_length=50, verbose_name="Street")
-    street2 = models.CharField(max_length=20, verbose_name="Street2")
+    street2 = models.CharField(max_length=20, verbose_name="Street2", null=True)
     city = models.CharField(max_length=20, verbose_name="City")
     state = models.CharField(max_length=20, verbose_name="State")
     postalCode = models.CharField(max_length=20, verbose_name="Zip")
@@ -234,7 +234,7 @@ class devices(models.Model):
     )
     so = models.ForeignKey(
         salesOrders,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
         verbose_name="SO",
         null=True,
         related_name="devices",

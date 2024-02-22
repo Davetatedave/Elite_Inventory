@@ -75,3 +75,8 @@ function ignoreRow(row_id) {
   row.remove();
   checkAllProcessed();
 }
+
+function getQueryParam(param) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(param);
+}

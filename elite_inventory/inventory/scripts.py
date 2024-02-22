@@ -176,27 +176,36 @@ class PhoneCheckAPI:
 
 
 class BackMarketAPI:
-    BASE_URL = "https://www.backmarket.co.uk/ws/listings"
+    BASE_URL = (
+        "https://preprod.backmarket.co.uk/ws"
+        if settings.DEBUG
+        else "https://www.backmarket.co.uk/ws"
+    )
+    API_KEY = (
+        "Basic NmUyMGQ2ZGNiODUwNzQ2ZGEwMTBjYjpCTVQtYjUzZWU2YWNhZTZiZWM1NGZiMmRlMzJkZTVhNzEyNmMyZmI0MjZhMQ=="
+        if settings.DEBUG
+        else "Basic YjhhYWYxNzNiNGM5OGEzNDZmZDMzMjpCTVQtNTU1NmRlNDk1ZDEyZTc2YWFlMDA5MDY0M2FhODc0MWIyNWVjMzVlMg=="
+    )
     HEADERS = {
         "Accept-Language": "en-gb",
+        "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": "Basic YjhhYWYxNzNiNGM5OGEzNDZmZDMzMjpCTVQtNTU1NmRlNDk1ZDEyZTc2YWFlMDA5MDY0M2FhODc0MWIyNWVjMzVlMg==",
+        "Authorization": API_KEY,
     }
 
     @classmethod
     def get_listings(cls, start=0, page_length=50):
-
+        BackMarketListing.objects.all().update(quantity=0)
         results = []
         skus_to_fetch = []
         # Fetch listings in batches and collect skus to fetch in a single query
-        next = cls.BASE_URL
+        next = f"cls.BASE_URL/listings"
         querystring = {
             "page": 1,  # Reset page for each batch
             "page-size": 50,
-            "publication_state": 2,
+            # "publication_state": 2,
         }
         while True:
-
             response = requests.get(
                 next, headers=cls.HEADERS, params=querystring
             ).json()
@@ -213,7 +222,6 @@ class BackMarketAPI:
                 break
 
         # Fetch skus in a single query
-        breakpoint()
         sku_mapping = {}
         if skus_to_fetch:
             sku_objects = deviceAttributes.objects.filter(
@@ -250,7 +258,7 @@ class BackMarketAPI:
 
     @classmethod
     def get_listing_by_id(cls, id, marketplace):
-        url = f"{cls.BASE_URL}/{id}"
+        url = f"{cls.BASE_URL}/listings/{id}"
         headers = {
             **cls.HEADERS,
             "Accept-Language": marketplace,
@@ -260,7 +268,7 @@ class BackMarketAPI:
 
     @classmethod
     def update_listing(cls, listing_id, quantity):
-        url = f"{cls.BASE_URL}/{listing_id}"
+        url = f"{cls.BASE_URL}/listings/{listing_id}"
         headers = {
             **cls.HEADERS,
             "Accept-Language": "en-gb",
@@ -271,10 +279,8 @@ class BackMarketAPI:
 
     @classmethod
     def get_orders(cls, state=1):
+
         # Get Orders from BM (default get pending orders)
-        preprodurl = "https://preprod.backmarket.fr/ws/orders"
-        url = "https://www.backmarket.co.uk/ws/orders"
-        mock_url = "https://run.mocky.io/v3/84c0ae5f-5a19-4619-b0ac-9205d81cf33f"
         headers = {
             **cls.HEADERS,
             "Accept-Language": "en-gb",
@@ -286,15 +292,16 @@ class BackMarketAPI:
         }
 
         response = requests.request(
-            "GET", mock_url, headers=headers, params=params
+            "GET", f"{cls.BASE_URL}/orders", headers=headers, params=params
         ).json()
+        breakpoint()
         if response["count"] < 50:
             results = response["results"]
         else:
             responseJoin = []
             pagecount = response["count"] // 50 + 1
             for i in range(1, pagecount + 1):
-                reqUrl = f"{url}&page={i}"
+                reqUrl = f"{cls.BASE_URL}/orders&page={i}"
                 response = requests.request("GET", reqUrl, headers=headers).json()[
                     "results"
                 ]
@@ -304,43 +311,43 @@ class BackMarketAPI:
         for order in results:
             # Get or Create Shipping Address
             shipping_address, _ = address.objects.get_or_create(
-                name=order["shipping_address"]["firstName"]
+                name=order["shipping_address"]["first_name"]
                 + " "
-                + order["shipping_address"]["lastName"],
+                + order["shipping_address"]["last_name"],
                 street=order["shipping_address"]["street"],
                 street2=order["shipping_address"]["street2"],
                 city=order["shipping_address"]["city"],
-                state=order["shipping_address"]["state"],
-                postalCode=order["shipping_address"]["postalCode"],
-                phone=order["shipping_address"]["phoneNumber"],
+                # state=order["shipping_address"]["state"],
+                postalCode=order["shipping_address"]["postal_code"],
+                phone=order["shipping_address"]["phone"],
                 country=order["shipping_address"]["country"],
             )
 
             # Get or Create Billing Address (assuming it's different from shipping)
             billing_address, _ = address.objects.get_or_create(
-                name=order["billing_address"]["firstName"]
+                name=order["billing_address"]["first_name"]
                 + " "
-                + order["billing_address"]["lastName"],
+                + order["billing_address"]["last_name"],
                 street=order["billing_address"]["street"],
                 street2=order["billing_address"]["street2"],
                 city=order["billing_address"]["city"],
-                state=order["billing_address"]["state"],
-                postalCode=order["billing_address"]["postalCode"],
-                phone=order["billing_address"]["phoneNumber"],
+                # state=order["billing_address"]["state"],
+                postalCode=order["billing_address"]["postal_code"],
+                phone=order["billing_address"]["phone"],
                 country=order["shipping_address"]["country"],
             )
 
             # Get or Create Customer
             customer_obj, _ = customer.objects.get_or_create(
-                name=order["shipping_address"]["firstName"]
+                name=order["shipping_address"]["first_name"]
                 + " "
-                + order["shipping_address"]["lastName"],
+                + order["shipping_address"]["last_name"],
                 shipping_address=shipping_address,
                 billing_address=billing_address,
                 defaults={
-                    "contact": order["billing_address"]["firstName"]
+                    "contact": order["billing_address"]["first_name"]
                     + " "
-                    + order["billing_address"]["lastName"],
+                    + order["billing_address"]["last_name"],
                     "email": "",  # Not available in the API
                     "channel": "BackMarket",
                     "currency": currencies.objects.get(
@@ -355,10 +362,6 @@ class BackMarketAPI:
                 so=order["order_id"],
                 defaults={
                     "customer": customer_obj,
-                    "date_shipped": datetime.datetime.strptime(
-                        order["date_shipping"], "%Y-%m-%dT%H:%M:%S"
-                    ),  # Adjust the date format as needed
-                    "shipped_by": order["shipper_display"],
                 },
             )
 
@@ -376,9 +379,9 @@ class BackMarketAPI:
                     quantity=orderline["quantity"],
                     unit_cost=float(orderline["price"]),  # Convert to float
                 )
-
+                breakpoint()
                 # # # Confirm Line Item
-                confirm_url = f"https://www.backmarket.fr/ws/orders/{salesOrderItem.salesorder.so}"
+                confirm_url = f"{cls.BASE_URL}/orders/{salesOrderItem.salesorder.so}"
                 payload = json.dumps(
                     {
                         "order_id": salesOrderItem.salesorder.so,

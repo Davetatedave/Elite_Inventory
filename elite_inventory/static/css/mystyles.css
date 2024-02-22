@@ -176,8 +176,8 @@ input::-webkit-inner-spin-button {
 #modals-here{
   resize: both;
   position: fixed;
-  top:20%;
-  left:30%;
+  top:5%;
+  left:10%;
   width: auto;
 }
 
