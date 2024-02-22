@@ -85,6 +85,7 @@ function initialiseModal() {
       $("#shipping-info").replaceWith(response);
     },
   });
+
   // Toggle address edit mode
   let edited = [];
   $(".edit-toggle").click(function () {

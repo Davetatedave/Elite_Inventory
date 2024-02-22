@@ -42,7 +42,11 @@ def access_secret_version(secret_id, version_id="latest"):
         return None
 
 
-APIKEYS = {"DHL": access_secret_version("DHL_API_KEY")}
+APIKEYS = {
+    "DHL": access_secret_version("DHL_API_KEY"),
+    "BM": access_secret_version("BM_API"),
+    "BM_PRE": access_secret_version("BM_PRE_API"),
+}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

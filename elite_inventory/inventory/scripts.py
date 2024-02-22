@@ -181,11 +181,7 @@ class BackMarketAPI:
         if settings.DEBUG
         else "https://www.backmarket.co.uk/ws"
     )
-    API_KEY = (
-        "Basic NmUyMGQ2ZGNiODUwNzQ2ZGEwMTBjYjpCTVQtYjUzZWU2YWNhZTZiZWM1NGZiMmRlMzJkZTVhNzEyNmMyZmI0MjZhMQ=="
-        if settings.DEBUG
-        else "Basic YjhhYWYxNzNiNGM5OGEzNDZmZDMzMjpCTVQtNTU1NmRlNDk1ZDEyZTc2YWFlMDA5MDY0M2FhODc0MWIyNWVjMzVlMg=="
-    )
+    API_KEY = settings.APIKEYS["BM_PRE"] if settings.DEBUG else settings.APIKEYS["BM"]
     HEADERS = {
         "Accept-Language": "en-gb",
         "Content-Type": "application/json",
@@ -199,7 +195,7 @@ class BackMarketAPI:
         results = []
         skus_to_fetch = []
         # Fetch listings in batches and collect skus to fetch in a single query
-        next = f"cls.BASE_URL/listings"
+        next = f"{cls.BASE_URL}/listings"
         querystring = {
             "page": 1,  # Reset page for each batch
             "page-size": 50,
@@ -294,7 +290,6 @@ class BackMarketAPI:
         response = requests.request(
             "GET", f"{cls.BASE_URL}/orders", headers=headers, params=params
         ).json()
-        breakpoint()
         if response["count"] < 50:
             results = response["results"]
         else:
@@ -379,7 +374,6 @@ class BackMarketAPI:
                     quantity=orderline["quantity"],
                     unit_cost=float(orderline["price"]),  # Convert to float
                 )
-                breakpoint()
                 # # # Confirm Line Item
                 confirm_url = f"{cls.BASE_URL}/orders/{salesOrderItem.salesorder.so}"
                 payload = json.dumps(
@@ -399,8 +393,32 @@ class BackMarketAPI:
                     sales_order.state = "Unconfirmed"
                     sales_order.save()
 
+    @classmethod
+    def update_orders(cls, so):
+        breakpoint()
 
-logger = logging.getLogger("DHLAPI")
+        sales_order = salesOrders.objects.prefetch_related("devices", "shipment").get(
+            pk=so
+        )
+        shipment = sales_order.shipment.all()[0]
+        shippedDevices = sales_order.devices.all()
+        order_id = sales_order.so
+        url = f"{cls.BASE_URL}/orders/{order_id}"
+        for device in shippedDevices:
+            body = {
+                "order_id": order_id,
+                "new_state": 3,
+                "sku": device.sku.sku,
+                "imei": device.imei,
+                "tracking_number": shipment.tracking_number,
+                "tracking_url": shipment.tracking_url,
+                "vat_type": "MARGINAL",
+                "date_shipping": f"{shipment.date_shipped.strftime('%Y-%m-%d')} 12:00:00",
+                "shipper": shipment.shipper,
+            }
+        response = requests.post(url, json=body, headers=cls.HEADERS)
+        sales_order.state = "Shipped"
+        sales_order.save()
 
 
 class DHLAPI:

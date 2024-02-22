@@ -181,7 +181,11 @@ class salesOrderItems(models.Model):
 
 class shipment(models.Model):
     so = models.ForeignKey(
-        salesOrders, on_delete=models.PROTECT, verbose_name="SO", null=True
+        salesOrders,
+        on_delete=models.PROTECT,
+        verbose_name="SO",
+        null=True,
+        related_name="shipment",
     )
     tracking_number = models.CharField(max_length=20, verbose_name="Tracking Number")
     tracking_url = models.URLField(

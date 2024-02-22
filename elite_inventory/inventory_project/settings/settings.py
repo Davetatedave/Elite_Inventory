@@ -17,7 +17,12 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-APIKEYS = {"DHL": os.getenv("DHL_API_KEY"), "USPS": os.getenv("USPS_API_KEY")}
+APIKEYS = {
+    "DHL": os.getenv("DHL_API_KEY"),
+    "USPS": os.getenv("USPS_API_KEY"),
+    "BM": os.getenv("BM_API"),
+    "BM_PRE": os.getenv("BM_PRE_API"),
+}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

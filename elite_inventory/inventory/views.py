@@ -689,6 +689,8 @@ def buyShippingLabel(request):
 
     DHL.buy_shipping_label(customerId, shipping_service, so)
 
+    BM.update_orders(so)
+    
     return JsonResponse({"so": so})
 
 
