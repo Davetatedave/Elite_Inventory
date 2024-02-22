@@ -167,9 +167,9 @@ def inventory(request):
     models = request.GET.get("models", None)
 
     device_attributes = deviceAttributes.objects.all()
-    statuses = deviceStatus.objects.all()
+    statuses = deviceStatus.objects.all().exclude(status__in=["Deleted", "Sold"])
 
-    statusesfortable = serializers.serialize("json", deviceStatus.objects.all())
+    statusesfortable = serializers.serialize("json", statuses)
 
     if models:
         device_attributes = device_attributes.filter(model=models)
@@ -318,6 +318,8 @@ def inventoryAjax(request):
                 "status": (
                     device.deviceStatus.status if device.deviceStatus else "Unknown"
                 ),
+                "so": device.so.so if device.so else None,
+                "so_id": device.so.pk if device.so else None,
                 "count": 1,
             }
             for device in phones[start : start + length]
@@ -361,6 +363,7 @@ def updateGrade(request):
             devicesToUpdate = devices.objects.filter(pk__in=selected_pks)
             newSKUs = []
             for device in devicesToUpdate:
+
                 new_device_attributes, created = deviceAttributes.objects.get_or_create(
                     model=device.sku.model,
                     color=device.sku.color,
@@ -415,7 +418,8 @@ def salesajax(request):
     )
 
     # Apply additional filtering based on the search query
-
+    if search_value:
+        sales = sales.filter(so__icontains=search_value)
     total_records = sales.count()
 
     data = [
@@ -464,6 +468,7 @@ def BMlistingsajax(request):
 
     data = []
     # Get Backmarket Listings with stock (note, this may be old data)
+
     listings = BackMarketListing.objects.filter(quantity__gt=0).order_by("quantity")
 
     # Iterate through listings and check if there is stock in Elite Inventory
@@ -605,6 +610,7 @@ def get_label(request, so):
 
 
 class orderDetail(DetailView):
+    template_name = "order_detail.html"
     queryset = (
         salesOrders.objects.select_related(
             "customer__shipping_address",
@@ -614,7 +620,11 @@ class orderDetail(DetailView):
         .all()
     )
 
-    template_name = "order_detail.html"
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        total_quantity = sum(item.quantity for item in context["object"].items.all())
+        context["total_quantity"] = total_quantity
+        return context
 
 
 def shipmentDetails(request, shipment_id):

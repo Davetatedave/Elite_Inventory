@@ -119,5 +119,17 @@
             </tbody>
         </table>
     </div>
+    <!-- Modal -->
+    <div id="modals-here"
+         class="float"
+         x-show="modalShow"
+         x-transition
+         x-cloak
+         @click.outside="modalShow = false">
+        <h2>Loading...</h2>
+    </div>
+    <!-- Modal Background -->
+    <div x-show="modalShow" class="overlay"></div>
+    <!-- End of Modal -->
     <script src="{% static 'js/inventorydataTable.js' %}"></script>
 {% endblock content %}
