@@ -358,8 +358,7 @@ background-color: white;
 
 .noneditable *{
   pointer-events: none;
-  background-color: #e3e3e3 !important; /* Optional: Change the text color to make it visually less prominent */
-}
+  background-color: #e3e3e3 !important;}
 
 .noneditable > button{
   display: none;
@@ -369,6 +368,10 @@ background-color: white;
   pointer-events: none;
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.shipped{
+  pointer-events: none;
 }
 
 .force{

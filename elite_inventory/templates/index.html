@@ -1,103 +1,21 @@
 {% extends "base.html" %}
 {% block title %}
-  {{ page_title }}
+    {{ page_title }}
 {% endblock title %}
 {% block content %}
-  <h1>Hello {{ date.1 }}</h1>
-  {% include "snippets/filters.html" %}
-  <div id="tableControls" class="px-2 mt-4 d-flex flex-row w-max">
-    <div x-data="{openDrop:false}">
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a class="nav-link"
-             hx-get=""
-             hx-target="#table-pagination-container"
-             hx-swap="innerHTML"
-             :class="{ 'active': activeTab === 'individual' }"
-             @click="activeTab = 'individual'">Individual</a>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle"
-             :class="{ 'active': activeTab != 'individual' }"
-             @click="openDrop = ! openDrop">Grouped</a>
-          <ul class="tableDropdown"
-              x-show="openDrop"
-              @click.outside="openDrop=false">
-            <li>
-              <a class="dropdown-item"
-                 @click="activeTab = 'dategroup',openDrop = false"
-                 :class="{ 'active': activeTab === 'dategroup' }"
-                 hx-vals='{"grouped":"dategroup"}'
-                 hx-get=""
-                 hx-target="#table-pagination-container"
-                 hx-swap="innerHTML">Date</a>
-            </li>
-            <li>
-              <a class="dropdown-item"
-                 @click="activeTab = 'infogroup',openDrop = false"
-                 :class="{ 'active': activeTab === 'infogroup' }"
-                 hx-vals='{"grouped":"infogroup"}'
-                 hx-get=""
-                 hx-target="#table-pagination-container"
-                 hx-swap="innerHTML">Info</a>
-            </li>
-            <li>
-              <a class="dropdown-item"
-                 @click="activeTab = 'Shipping_Status',openDrop = false"
-                 :class="{ 'active': activeTab === 'Shipping_Status' }"
-                 hx-vals='{"grouped":"Shipping_Status"}'
-                 hx-get=""
-                 hx-target="#table-pagination-container"
-                 hx-swap="innerHTML">Status</a>
-            </li>
-          </ul>
-        </li>
-      </ul>
+    {% load static %}
+    <h1>Hello, Chris. It's currently {{ date.1 }}</h1>
+    <div class="flex justify-center items-center h-screen">
+        <img src="{% static 'img/beauty.jpg' %}" alt="My image">
+        <!-- Modal -->
+        <div id="modals-here"
+             class="float"
+             x-show="modalShow"
+             x-transition
+             x-cloak
+             @click.outside="modalShow = false"></div>
+        <!-- Modal Background -->
+        <div x-show="modalShow" class="overlay"></div>
+        <!-- End of Modal -->
     </div>
-    <div class="dropdown ms-auto" x-data="{ dropdownShow: false }">
-      <button class="btn btn-secondary dropdown-toggle"
-              type="button"
-              id="columnDropdown"
-              @click="dropdownShow =! dropdownShow"
-              x-show="activeTab == 'individual'"
-              aria-haspopup="true"
-              aria-expanded="false">Columns</button>
-      <div class="dropdown-men"
-           x-show="dropdownShow"
-           aria-labelledby="columnDropdown"
-           x-cloak
-           @click.outside="dropdownShow = false">
-        <a class="dropdown-item">
-          <input type="checkbox" id="date" x-model="states.dateChecked" />
-          Date Created
-        </a>
-        <a class="dropdown-item">
-          <input type="checkbox" id="id" x-model="states.idChecked" />
-          ID
-        </a>
-        <a class="dropdown-item">
-          <input type="checkbox" id="info" x-model="states.infoChecked" />
-          Info
-        </a>
-        <a class="dropdown-item">
-          <input type="checkbox" id="status" x-model="states.statusChecked" />
-          Status
-        </a>
-      </div>
-    </div>
-  </div>
-  <div class="mx-auto border p-4  rounded"
-       x-data="{ states: { dateChecked: $persist(true).as('date-checked'), idChecked: $persist(true).as('id-checked'), infoChecked: $persist(true).as('info-checked'), statusChecked: $persist(true).as('status-checked')} }">
-    <div id="table-pagination-container" x-cloak>{% include "inv_table.html" %}</div>
-    <!-- Modal -->
-    <div id="modals-here"
-         class="float"
-         x-show="modalShow"
-         x-transition
-         x-cloak
-         @click.outside="modalShow = false"></div>
-    <!-- Modal Background -->
-    <div x-show="modalShow" class="overlay"></div>
-    <!-- End of Modal -->
-  </div>
 {% endblock content %}

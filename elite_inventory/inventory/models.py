@@ -44,6 +44,11 @@ class deviceManager(models.Manager):
         return super().get_queryset().exclude(deviceStatus_id__in=[3])
 
 
+class soldDeviceManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().exclude(deviceStatus_id__in=[3, 5])
+
+
 class deviceStatus(models.Model):
     status = models.CharField(
         max_length=20, verbose_name="Device Status", default="Unvailable"
@@ -255,9 +260,9 @@ class devices(models.Model):
     warehouse = models.ForeignKey(
         warehouse, on_delete=models.PROTECT, verbose_name="Warehouse", null=True
     )
-
     history = HistoricalRecords()
     objects = deviceManager()
+    available = soldDeviceManager()
     all_objects = models.Manager()
 
 

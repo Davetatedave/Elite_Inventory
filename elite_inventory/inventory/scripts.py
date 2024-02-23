@@ -27,6 +27,8 @@ from .utils import get_mock
 import base64
 from google.cloud import storage
 import io
+from django.db.models import IntegerField, Sum, Count
+from django.db.models.functions import Cast
 
 # This script is used to import devices from the PhoneCheck API
 
@@ -248,7 +250,18 @@ class BackMarketAPI:
                 },
             )
             items.append(instance)
-
+        available_stock = calculate_available_stock()
+        for listing in items:
+            try:
+                sku = listing.sku.sku
+                if listing.quantity > available_stock.get(listing.sku.sku, 0):
+                    cls.update_listing(
+                        listing.listing_id, available_stock.get(listing.sku.sku, 0)
+                    )
+                    listing.quantity = available_stock.get(listing.sku.sku, 0)
+                    listing.save()
+            except:
+                pass
         total = len(items)
         return items, total
 
@@ -395,7 +408,6 @@ class BackMarketAPI:
 
     @classmethod
     def update_orders(cls, so):
-        breakpoint()
 
         sales_order = salesOrders.objects.prefetch_related("devices", "shipment").get(
             pk=so
@@ -419,6 +431,11 @@ class BackMarketAPI:
         response = requests.post(url, json=body, headers=cls.HEADERS)
         sales_order.state = "Shipped"
         sales_order.save()
+
+    @classmethod
+    def sync_stock(cls):
+        listed = BackMarketListing.objects.filter(quantity__gte=0)
+        available = calculate_available_stock()
 
 
 class DHLAPI:
@@ -789,3 +806,27 @@ def bulkUploadPhones(df, warehouse):
             }
             for key, devices in missing_sku_details.items()
         ]
+
+
+def calculate_available_stock(battery=84, grades=["A", "A/B", "B/C"]):
+    groupedStock = (
+        devices.objects.filter(
+            deviceStatus=2, battery__gte=battery, sku__grade__in=grades
+        )
+        .values("sku__sku")
+        .annotate(count=Count("sku"))
+    )
+    allocated_stock = (
+        salesOrderItems.objects.filter(salesorder__state="Confirmed")
+        .values("sku__sku")
+        .annotate(count=Sum("quantity"))
+    )
+    groupedStockDict = {item["sku__sku"]: item["count"] for item in groupedStock}
+    allocatedStockDict = {item["sku__sku"]: item["count"] for item in allocated_stock}
+
+    for sku, count in allocatedStockDict.items():
+        if sku in groupedStockDict:
+            # Subtract allocated stock from grouped stock, ensuring we don't go below zero
+            groupedStockDict[sku] = max(groupedStockDict[sku] - count, 0)
+
+    return groupedStockDict

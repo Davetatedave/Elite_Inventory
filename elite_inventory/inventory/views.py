@@ -23,6 +23,7 @@ from django.db.models import Count
 from django.http import HttpResponse, JsonResponse, FileResponse, StreamingHttpResponse
 from django.template.loader import render_to_string
 from .scripts import (
+    calculate_available_stock,
     PhoneCheckAPI as PC,
     calculateSKU,
     BackMarketAPI as BM,
@@ -167,9 +168,7 @@ def inventory(request):
     models = request.GET.get("models", None)
 
     device_attributes = deviceAttributes.objects.all()
-    statuses = deviceStatus.objects.all().exclude(status__in=["Deleted", "Sold"])
-
-    statusesfortable = serializers.serialize("json", statuses)
+    statuses = deviceStatus.objects.all()
 
     if models:
         device_attributes = device_attributes.filter(model=models)
@@ -179,7 +178,9 @@ def inventory(request):
         for field in deviceAttributes._meta.fields
     }
 
-    distinct_values["status"] = statuses = [status.status for status in statuses]
+    distinct_values["status"] = [status.status for status in statuses]
+    changestate = statuses.exclude(status__in=["Sold", "Deleted"])
+    statusesfortable = serializers.serialize("json", changestate)
     grades = ["A+", "A", "A/B", "B", "B/C", "C", "ABC"]
     grades_json = json.dumps(grades)
     context = {
@@ -218,7 +219,7 @@ def inventoryAjax(request):
         )
     else:
         phones = (
-            devices.objects.select_related("sku").select_related("deviceStatus").all()
+            devices.available.select_related("sku").select_related("deviceStatus").all()
         )
 
         # Pagination parameters
@@ -456,15 +457,8 @@ def BMlistingsajax(request):
     page_length = int(request.GET.get("length", 10))
     start = int(request.GET.get("start", 0))
 
-    # Get All Suitable Stock from Elite Inventory
-    groupedStock = (
-        devices.objects.filter(deviceStatus=2, battery__gte=85)
-        .exclude(sku__grade__in=["ABC", "C"])
-        .values("sku__sku")
-        .annotate(count=Count("sku"))
-    )
     # Convert to dictionary for easy lookup
-    groupedStockDict = {item["sku__sku"]: item["count"] for item in groupedStock}
+    groupedStockDict = calculate_available_stock()
 
     data = []
     # Get Backmarket Listings with stock (note, this may be old data)
@@ -586,10 +580,8 @@ def addStockImeis(request):
 
 
 def getBmOrders(request):
-    shipment.objects.all().delete()
-    salesOrders.objects.all().delete()
-    customer.objects.all().delete()
     BM.get_orders()
+    BM.get_listings()
     return render(request, template_name="sales.html")
 
 
@@ -690,7 +682,7 @@ def buyShippingLabel(request):
     DHL.buy_shipping_label(customerId, shipping_service, so)
 
     BM.update_orders(so)
-    
+
     return JsonResponse({"so": so})
 
 

@@ -71,7 +71,11 @@ $(document).ready(function () {
         data: "state",
         orderable: false,
         render: function (data, type, row) {
-          return data ? data : Unknown; // Replace 'Not specified' with any default or placeholder text
+          return data
+            ? data == "Shipped"
+              ? '<button class="btn btn-success shipped">' + data + "</button>"
+              : data
+            : Unknown; // Replace 'Not specified' with any default or placeholder text
         },
       },
     ],
