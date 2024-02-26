@@ -107,6 +107,13 @@
                                 <i class="bi bi-plus-square"></i>
                                 <p class="d-lg-inline d-none">Add Stock</p>
                             </a>
+                            {% url 'edit_sku' as edit_sku %}
+                            <a class="nav-link navItem {% if request.path == edit_sku %}activeCust{% endif %}"
+                               aria-current="page"
+                               href="{{ edit_sku }}">
+                                <i class="bi bi-pencil-square"></i>
+                                <p class="d-lg-inline d-none">Edit Sku</p>
+                            </a>
                             {% url 'listings' as listings_url %}
                             <a class="nav-link navItem {% if request.path == listings_url %}activeCust{% endif %}"
                                aria-current="page"

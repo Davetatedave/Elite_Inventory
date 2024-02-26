@@ -2,19 +2,32 @@
 {% block content %}
     {% load static %}
     <h1>Sales</h1>
+    <div class="col-md-6 p-2">
+        <h3>Sales Channel</h3>
+        <select id="channelFilter" class="filter">
+            <option>All</option>
+            <option value="BackMarket">BackMarket</option>
+            <option value="Refurbed">Refurbed</option>
+        </select>
+        <h3>Status</h3>
+        <select id="statusFilter" class="filter">
+            <option value="Confirmed" selected>Confirmed</option>
+            <option value="Shipped">Shipped</option>
+        </select>
+    </div>
     <!-- djlint:off -->
-                                                        <table id="salesTable" style="width:100%">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Order ID</th>
-                                                                    <th>Order Date</th>
-                                                                    <th>Channel</th>
-                                                                    <th>Customer Name</th>
-                                                                    <th> Quantity</th>
-                                                                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
+        <table id="salesTable" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Order Date</th>
+                    <th>Channel</th>
+                    <th>Customer Name</th>
+                    <th> Quantity</th>
+                    <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
 <!-- djlint:on -->
 </tbody>
 </table>

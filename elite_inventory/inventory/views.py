@@ -39,11 +39,14 @@ from .forms import DeviceAttributesForm
 from google.cloud import storage
 import base64
 import io
+import csv
 
 
 def index(request):
     # Default date range: last 30 days
     default_end_date = datetime.today().date()
+    christmas = datetime(datetime.today().year, 12, 25).date()
+    days_to_christmas = (christmas - default_end_date).days
     default_start_date = default_end_date - timedelta(days=30)
 
     start_date_str = request.GET.get("start_date")
@@ -81,6 +84,7 @@ def index(request):
         "table": table_info,
         "request": request,
         "statuses": statuses,
+        "days_to_christmas": days_to_christmas,
         "date": (start_date, end_date),
         "currentpage": page,
     }
@@ -412,15 +416,19 @@ def salesajax(request):
 
     # Your data filtering and processing logic here
 
-    status = request.GET.getlist("status[]", None)
-    order = request.GET.get("order[0][column]", None)
-    sales = (
-        salesOrders.objects.all().select_related("customer").prefetch_related("items")
-    )
-
+    status = request.GET.get("status", None)
+    channel = request.GET.get("channel", None)
+    sales = salesOrders.objects.select_related("customer").prefetch_related("items")
     # Apply additional filtering based on the search query
     if search_value:
         sales = sales.filter(so__icontains=search_value)
+
+    if status:
+        sales = sales.filter(state=status)
+
+    if channel != "All":
+        sales = sales.filter(customer__channel=channel)
+
     total_records = sales.count()
 
     data = [
@@ -540,6 +548,37 @@ def getBMdata(request):
     return JsonResponse({"message": "Data updated successfully."})
 
 
+def getPickList(request):
+    # Get the list of sales orders that are not yet picked
+    sales_orders = salesOrders.objects.filter(state="Confirmed")
+
+    # Create a dictionary to store the pick list data
+    pick_list = defaultdict(list)
+
+    response = HttpResponse(
+        content_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="picklist.csv"'},
+    )
+
+    writer = csv.writer(response)
+    writer.writerow(["sku", "quantity", "model", "capacity", "color", "grade"])
+    # Iterate through the sales orders and get the items
+    for so in sales_orders:
+        for item in so.items.all():
+            writer.writerow(
+                [
+                    item.sku.sku,
+                    item.quantity,
+                    item.sku.model,
+                    item.sku.capacity,
+                    item.sku.color,
+                    item.sku.grade,
+                ]
+            )
+
+    return response
+
+
 def addStockImeis(request):
     if not request.GET.get("retry"):
 
@@ -580,7 +619,7 @@ def addStockImeis(request):
 
 
 def getBmOrders(request):
-    BM.get_orders()
+    BM.get_orders(state=3)
     BM.get_listings()
     return render(request, template_name="sales.html")
 
@@ -724,3 +763,76 @@ def removeImei(request):
     deviceIn.deviceStatus_id = 1
     deviceIn.save()
     return JsonResponse({"message": "IMEI removed successfully."})
+
+
+def editSku(request):
+
+    return render(request, template_name="edit_sku.html")
+
+
+def editSkuAjax(request):
+
+    model = request.POST.get("model", None)
+    capacity = request.POST.get("capacity", None)
+    color = request.POST.get("color", None)
+    grade = request.POST.get("grade", None)
+
+    device_attributes = deviceAttributes.objects.all()
+
+    if model:
+        device_attributes = device_attributes.filter(model=model)
+    if capacity:
+        device_attributes = device_attributes.filter(capacity=capacity)
+    if color:
+        device_attributes = device_attributes.filter(color=color)
+    if grade:
+        device_attributes = device_attributes.filter(grade=grade)
+
+    distinct_values = {
+        field.name: set(getattr(obj, field.name) for obj in device_attributes)
+        for field in deviceAttributes._meta.fields
+    }
+    context = {
+        "device_attributes": distinct_values,
+        "model": model,
+        "capacity": capacity,
+        "color": color,
+        "grade": grade,
+    }
+    if model and capacity and color and grade:
+        skus = (
+            device_attributes.objects.filter(
+                model=model, capacity=capacity, color=color, grade=grade
+            )
+            .prefetch_related("backmarket_listings")
+            .all()
+        )
+        context["internal_skus"] = skus.first()
+        context["bm_skus"] = skus.first().backmarket_listings.first()
+    response = render_to_string("snippets/sku_filters.html", context=context)
+
+    return HttpResponse(response)
+
+
+def getSkuData(request):
+    skus = deviceAttributes.objects.all().prefetch_related("backmarket_listings").all()
+
+    data = []
+    for sku in skus:
+
+        data_entry = {
+            "model": sku.model,
+            "capacity": sku.capacity,
+            "color": sku.color,
+            "grade": sku.grade,
+            "sku": sku.sku,
+            "bm_sku": (
+                sku.backmarket_listings.first().bm_sku
+                if sku.backmarket_listings.first()
+                else None
+            ),
+        }
+        data.append(data_entry)
+        print(data)
+        breakpoint()
+    return JsonResponse({"data": data})

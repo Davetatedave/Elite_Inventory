@@ -43,4 +43,8 @@ urlpatterns = [
     path("sales/get_label/<int:so>", views.get_label, name="get_label"),
     path("commit_imei/", views.commitImei, name="commitImei"),
     path("remove_imei/", views.removeImei, name="removeImei"),
+    path("getPickList/", views.getPickList, name="getPickList"),
+    path("edit_sku/", views.editSku, name="edit_sku"),
+    path("edit_skuajax/", views.editSkuAjax, name="edit_skuajax"),
+    path("getSkuData/", views.getSkuData, name="getSkuData"),
 ]

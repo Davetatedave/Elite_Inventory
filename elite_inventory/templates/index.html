@@ -4,7 +4,11 @@
 {% endblock title %}
 {% block content %}
     {% load static %}
-    <h1>Hello, Chris. It's currently {{ date.1 }}</h1>
+    <h1>
+        Hello, Chris.
+        <br>
+        It's currently {{ days_to_christmas }} Days Until Christmas
+    </h1>
     <div class="flex justify-center items-center h-screen">
         <img src="{% static 'img/beauty.jpg' %}" alt="My image">
         <!-- Modal -->

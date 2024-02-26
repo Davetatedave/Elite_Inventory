@@ -12,14 +12,9 @@ $(document).ready(function () {
     buttons: [
       "pageLength",
       {
-        text: "Get New Data",
+        text: "Get Pick List",
         action: function () {
-          $.ajax({
-            url: "/getBMdata/",
-            success: function (result) {
-              console.log("Got BM Data:" + result.response);
-            },
-          });
+          window.open("/getPickList/", "_blank");
         },
       },
     ],
@@ -27,7 +22,11 @@ $(document).ready(function () {
     ajax: {
       url: "/salesajax/",
       data: function (d) {
-        return $.extend({}, d, {});
+        return $.extend({}, d, {
+          channel: $("#channelFilter").val(),
+          status: $("#statusFilter").val(),
+          success: function (response) {},
+        });
       },
       dataSrc: "data", // Data property name in the JSON response
     },
@@ -87,6 +86,11 @@ $(document).ready(function () {
     processing: true,
     serverSide: true,
     searching: true,
+  });
+  $(".filter").on("change", function () {
+    salesTable.ajax.reload(function () {
+      htmx.process(document.body);
+    });
   });
   salesTable.on("init.dt", function () {
     let url = new URL(window.location.href);

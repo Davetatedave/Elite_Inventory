@@ -58,7 +58,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = "django-insecure-6mz%13gsu0#(!+l)1n^4%ass=*lxdlg-g1kuc%iu42fl=m^vi@"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
+
+BM_PREPROD = False
 
 ALLOWED_HOSTS = ["elite-inn-inventory.ew.r.appspot.com", "127.0.0.1", "*"]
 

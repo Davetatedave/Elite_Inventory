@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+    {% load static %}
+    <h1>Edit SKUS</h1>
+    <div class="row my-2 p-2 border rounded">
+        <div class="col-md-4 d-flex flex-column" id="skuFilters"></div>
+        <div class="col-md-4 d-flex flex-column" id="skus">
+            <h2>SKUs</h2>
+            <div class="sku-edit ">
+                <form id="skuEditForm" class="noneditable">
+                    <input type="text"
+                           id="internalSku"
+                           value="{{ object.internal_sku }}"
+                           class="form-control mb-2"
+                           data-customer-id="{{ object.customer.pk }}">
+                    <input type="text"
+                           id="BMSku"
+                           value="{{ object.customer.shipping_sku.street }}"
+                           class="form-control mb-2">
+                    <input type="text"
+                           id="RefurbedSKU"
+                           value="{{ object.customer.shipping_sku.city }}"
+                           class="form-control mb-2">
+                </div>
+            </div>
+            <script src="{% static 'js/skudatatable.js' %}"></script>
+        {% endblock content %}

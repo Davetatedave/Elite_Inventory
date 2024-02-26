@@ -269,7 +269,11 @@ class devices(models.Model):
 class BackMarketListing(models.Model):
     listing_id = models.IntegerField(unique=True, primary_key=True)
     sku = models.ForeignKey(
-        deviceAttributes, on_delete=models.PROTECT, verbose_name="SKU", null=True
+        deviceAttributes,
+        on_delete=models.PROTECT,
+        verbose_name="SKU",
+        null=True,
+        related_name="backmarket_listings",
     )
     bm_sku = models.CharField(max_length=100, verbose_name="BM SKU")
     title = models.CharField(max_length=255)

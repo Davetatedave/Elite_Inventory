@@ -180,7 +180,7 @@ class PhoneCheckAPI:
 class BackMarketAPI:
     BASE_URL = (
         "https://preprod.backmarket.co.uk/ws"
-        if settings.DEBUG
+        if settings.BM_PREPROD
         else "https://www.backmarket.co.uk/ws"
     )
     API_KEY = settings.APIKEYS["BM_PRE"] if settings.DEBUG else settings.APIKEYS["BM"]
