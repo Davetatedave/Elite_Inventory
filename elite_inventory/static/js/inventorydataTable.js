@@ -239,13 +239,15 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         visible: grouping.includes("status") || grouping.length === 0,
         orderable: false,
         render: function (data, type, row) {
-          return data == "Sold"
-            ? '<a href="/sales/?so=' +
+          return data
+            ? data == "Sold"
+              ? '<a href="/sales/?so=' +
                 row.so +
                 "&so_id=" +
                 row.so_id +
                 '"class="btn btn-primary">Sold</a>'
-            : data; // Replace 'Not specified' with any default or placeholder text
+              : data
+            : "N/A"; // Replace 'Not specified' with any default or placeholder text
         },
       },
       {

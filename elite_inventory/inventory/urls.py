@@ -47,4 +47,5 @@ urlpatterns = [
     path("edit_sku/", views.editSku, name="edit_sku"),
     path("edit_skuajax/", views.editSkuAjax, name="edit_skuajax"),
     path("getSkuData/", views.getSkuData, name="getSkuData"),
+    path("updateSKU/", views.updateSKU, name="updateSKU"),
 ]

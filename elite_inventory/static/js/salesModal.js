@@ -77,11 +77,12 @@ function initialiseModal() {
   /// Load Shipping Info
   country = $("#countryInit").val();
   $("#country option[value=" + country + "]").prop("selected", true);
-  console.log("Country " + country);
+
   $.ajax({
     method: "GET",
     url: "/shipment_details/" + so_id,
     success: function (response) {
+      console.log(response);
       $("#shipping-info").replaceWith(response);
     },
   });

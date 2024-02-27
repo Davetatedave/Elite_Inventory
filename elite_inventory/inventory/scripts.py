@@ -251,17 +251,17 @@ class BackMarketAPI:
             )
             items.append(instance)
         available_stock = calculate_available_stock()
-        for listing in items:
-            try:
-                sku = listing.sku.sku
-                if listing.quantity > available_stock.get(listing.sku.sku, 0):
-                    cls.update_listing(
-                        listing.listing_id, available_stock.get(listing.sku.sku, 0)
-                    )
-                    listing.quantity = available_stock.get(listing.sku.sku, 0)
-                    listing.save()
-            except:
-                pass
+        # for listing in items:
+        #     try:
+        #         sku = listing.sku.sku
+        #         if listing.quantity > available_stock.get(listing.sku.sku, 0):
+        #             cls.update_listing(
+        #                 listing.listing_id, available_stock.get(listing.sku.sku, 0)
+        #             )
+        #             listing.quantity = available_stock.get(listing.sku.sku, 0)
+        #             listing.save()
+        #     except:
+        #         pass
         total = len(items)
         return items, total
 
@@ -408,7 +408,7 @@ class BackMarketAPI:
 
     @classmethod
     def update_orders(cls, so):
-
+        breakpoint()
         sales_order = salesOrders.objects.prefetch_related("devices", "shipment").get(
             pk=so
         )
@@ -421,14 +421,14 @@ class BackMarketAPI:
                 "order_id": order_id,
                 "new_state": 3,
                 "sku": device.sku.sku,
-                "imei": device.imei,
+                "imei": device.imei if len(shippedDevices) == 1 else None,
                 "tracking_number": shipment.tracking_number,
                 "tracking_url": shipment.tracking_url,
                 "vat_type": "MARGINAL",
                 "date_shipping": f"{shipment.date_shipped.strftime('%Y-%m-%d')} 12:00:00",
                 "shipper": shipment.shipper,
             }
-        response = requests.post(url, json=body, headers=cls.HEADERS)
+            response = requests.post(url, json=body, headers=cls.HEADERS)
         sales_order.state = "Shipped"
         sales_order.save()
 

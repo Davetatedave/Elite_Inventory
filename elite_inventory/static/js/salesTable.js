@@ -97,7 +97,9 @@ $(document).ready(function () {
     let so_search = url.searchParams.get("so");
     let so_id = url.searchParams.get("so_id");
     if (so_search) {
+      $("#statusFilter").val("Shipped");
       salesTable.search(so_search).draw();
+
       reloadModal(so_id);
     }
 

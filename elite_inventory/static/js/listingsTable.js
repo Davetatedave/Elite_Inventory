@@ -42,11 +42,7 @@ $(document).ready(function () {
         render: function (data, type, row, meta) {
           return data != null
             ? '<a href="detail/' + row.listing_id + '">' + data + "</a>"
-            : '<button hx-get="./resolve_marketplace_sku/' +
-                row.listing_id +
-                '" hx-target="#modals-here" hx-trigger="click" @click="modalShow = !modalShow" class="btn btn-warning">' +
-                "Resolve SKU" +
-                "</button>";
+            : '<a  href="/edit_sku/" class="btn btn-warning">Resolve SKU</a>';
         },
         orderable: false,
       },

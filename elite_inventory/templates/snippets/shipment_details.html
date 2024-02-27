@@ -1,17 +1,19 @@
-<button on-click="printLabel()" class="mx-auto my-2 btn btn-success">
-    <a class="text-decoration-none text-white"
-       href="{% url 'get_label' so %}"
-       target="_blank">Label</a>
-</button>
-<p>
-    Tracking Number: <strong>{{ tracking_number }}</strong>
-</p>
-<p>
-    Carrier: <strong>{{ shipper }}</strong>
-</p>
-<p>
-    Shipped: <strong>{{ date_shipped }}</strong>
-</p>
-<p>
-    Tracking URL: <a href="{{ tracking_url }}" target="_blank">Track Here</a>
-</p>
+<div id="shipping-info">
+    <button on-click="printLabel()" class="mx-auto my-2 btn btn-success">
+        <a class="text-decoration-none text-white"
+           href="{% url 'get_label' so %}"
+           target="_blank">Label</a>
+    </button>
+    <p>
+        Tracking Number: <strong>{{ tracking_number }}</strong>
+    </p>
+    <p>
+        Carrier: <strong>{{ shipper }}</strong>
+    </p>
+    <p>
+        Shipped: <strong>{{ date_shipped }}</strong>
+    </p>
+    <p>
+        Tracking URL: <a href="{{ tracking_url }}" target="_blank">Track Here</a>
+    </p>
+</div>

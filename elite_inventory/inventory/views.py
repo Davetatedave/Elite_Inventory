@@ -158,6 +158,15 @@ def newSKU(request):
             return JsonResponse({"message": message, "error": str(e)}, status=500)
 
 
+def updateSKU(request):
+    deviceAttributeId = request.POST.get("id")
+    newSKU = request.POST.get("new_sku")
+
+    deviceAttributes.objects.filter(pk=deviceAttributeId).update(sku=newSKU)
+
+    return JsonResponse({"message": "SKU updated successfully."})
+
+
 class resolveMarketplaceSku(DetailView):
     model = BackMarketListing
     context_object_name = "listing"
@@ -619,7 +628,7 @@ def addStockImeis(request):
 
 
 def getBmOrders(request):
-    BM.get_orders(state=3)
+    BM.get_orders(state=1)
     BM.get_listings()
     return render(request, template_name="sales.html")
 
@@ -766,8 +775,31 @@ def removeImei(request):
 
 
 def editSku(request):
+    device_attributes = deviceAttributes.objects.all()
 
-    return render(request, template_name="edit_sku.html")
+    device_attributes = {
+        "model": list(
+            device_attributes.order_by("model")
+            .values_list("model", flat=True)
+            .distinct()
+        ),
+        "capacity": list(
+            device_attributes.order_by("capacity")
+            .values_list("capacity", flat=True)
+            .distinct()
+        ),
+        "color": list(
+            device_attributes.order_by("color")
+            .values_list("color", flat=True)
+            .distinct()
+        ),
+        "grade": list(
+            device_attributes.order_by("grade")
+            .values_list("grade", flat=True)
+            .distinct()
+        ),
+    }
+    return render(request, context=device_attributes, template_name="edit_sku.html")
 
 
 def editSkuAjax(request):
@@ -788,30 +820,55 @@ def editSkuAjax(request):
     if grade:
         device_attributes = device_attributes.filter(grade=grade)
 
-    distinct_values = {
-        field.name: set(getattr(obj, field.name) for obj in device_attributes)
-        for field in deviceAttributes._meta.fields
+    values = {
+        "model": list(
+            device_attributes.order_by("model")
+            .values_list("model", flat=True)
+            .distinct()
+        ),
+        "capacity": list(
+            device_attributes.order_by("capacity")
+            .values_list("capacity", flat=True)
+            .distinct()
+        ),
+        "color": list(
+            device_attributes.order_by("color")
+            .values_list("color", flat=True)
+            .distinct()
+        ),
+        "grade": list(
+            device_attributes.order_by("grade")
+            .values_list("grade", flat=True)
+            .distinct()
+        ),
     }
-    context = {
-        "device_attributes": distinct_values,
-        "model": model,
-        "capacity": capacity,
-        "color": color,
-        "grade": grade,
-    }
+    values["selected_model"] = model if model else None
+    values["selected_capacity"] = capacity if capacity else None
+    values["selected_color"] = color if color else None
+    values["selected_grade"] = grade if grade else None
+
     if model and capacity and color and grade:
         skus = (
-            device_attributes.objects.filter(
+            device_attributes.filter(
                 model=model, capacity=capacity, color=color, grade=grade
             )
             .prefetch_related("backmarket_listings")
-            .all()
+            .first()
         )
-        context["internal_skus"] = skus.first()
-        context["bm_skus"] = skus.first().backmarket_listings.first()
-    response = render_to_string("snippets/sku_filters.html", context=context)
+        values["internal_skus"] = skus.sku
+        values["bm_skus"] = (
+            skus.backmarket_listings.first().bm_sku
+            if skus.backmarket_listings.first()
+            else None
+        )
+        values["sku_id"] = skus.pk
+        values["bm_id"] = (
+            skus.backmarket_listings.first().pk
+            if skus.backmarket_listings.first()
+            else None
+        )
 
-    return HttpResponse(response)
+    return JsonResponse(values)
 
 
 def getSkuData(request):

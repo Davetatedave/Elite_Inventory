@@ -3,24 +3,56 @@
     {% load static %}
     <h1>Edit SKUS</h1>
     <div class="row my-2 p-2 border rounded">
-        <div class="col-md-4 d-flex flex-column" id="skuFilters"></div>
-        <div class="col-md-4 d-flex flex-column" id="skus">
+        <div class="col-md-4 d-flex flex-column" id="skuFilters">
+            <h2>Select Model</h2>
+            <select class='filter mb-2' id="modelSelect" style="width: 100%">
+                <option value="">Select Model</option>
+                {% for model_group in model %}<option value="{{ model_group }}">{{ model_group }}</option>{% endfor %}
+            </select>
+            <select class="filte mb-2" id="capacitySelect" style="width: 100%">
+                <option value="">Select Capacity</option>
+                {% for capacity_group in capacity %}<option value="{{ capacity_group }}">{{ capacity_group }}</option>{% endfor %}
+            </select>
+            <select class='filter mb-2' id="colorSelect" style="width: 100%">
+                <option value="">Select Color</option>
+                {% for color_group in color %}<option value="{{ color_group }}">{{ color_group }}</option>{% endfor %}
+            </select>
+            <select class='filter mb-2' id="gradeSelect" style="width: 100%">
+                <option value="">Select Grade</option>
+                {% for grade_group in grade %}<option value="{{ grade_group }}">{{ grade_group }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-md-8 d-flex flex-column" id="skus">
             <h2>SKUs</h2>
             <div class="sku-edit ">
-                <form id="skuEditForm" class="noneditable">
-                    <input type="text"
-                           id="internalSku"
-                           value="{{ object.internal_sku }}"
-                           class="form-control mb-2"
-                           data-customer-id="{{ object.customer.pk }}">
-                    <input type="text"
-                           id="BMSku"
-                           value="{{ object.customer.shipping_sku.street }}"
-                           class="form-control mb-2">
-                    <input type="text"
-                           id="RefurbedSKU"
-                           value="{{ object.customer.shipping_sku.city }}"
-                           class="form-control mb-2">
+                <form id="skuEditForm">
+                    <div class="input-group mb-2">
+                        <input type="text"
+                               id="internalSku"
+                               value="{{ object.internal_sku }}"
+                               class="form-control skus"
+                               data-id="">
+                        <div class="input-group-append w-50 d-grid">
+                            <button data-sku_type="Internal"
+                                    class="btn btn-outline-secondary text-nowrap"
+                                    type="button">Internal SKU</button>
+                        </div>
+                    </div>
+                    <div class="input-group mb-2">
+                        <input type="text"
+                               id="BMSku"
+                               value="{{ object.bm_skus }}"
+                               class="form-control skus"
+                               data-id=""
+                               readonly>
+                        <span class="input-group-text w-50 d-block">BM SKU</span>
+                    </div>
+                    {% comment %} <div class="input-group mb-2">
+                        <input type="text" id="RefurbedSKU" value="{{ object.customer.shipping_sku.city }}" class="form-control mb-2 skus">
+                        <div class="input-group-append w-50">
+                            <button class="btn btn-outline-secondary w-100" type="button">Refurbed SKU</button>
+                        </div>
+                    </div> {% endcomment %}
                 </div>
             </div>
             <script src="{% static 'js/skudatatable.js' %}"></script>
