@@ -17,30 +17,55 @@
             </div>
             <div class="address-edit ">
                 <form id="addressEditForm" class="noneditable">
-                    <input type="text"
-                           id="name"
-                           value="{{ object.customer.shipping_address.name }}"
-                           class="form-control mb-2"
-                           data-customer-id="{{ object.customer.pk }}">
-                    <input type="text"
-                           id="street"
-                           value="{{ object.customer.shipping_address.street }}"
-                           class="form-control mb-2">
-                    <input type="text"
-                           id="city"
-                           value="{{ object.customer.shipping_address.city }}"
-                           class="form-control mb-2">
-                    <input type="text"
-                           id="state"
-                           value="{{ object.customer.shipping_address.state }}"
-                           class="form-control mb-2">
-                    {% with object.customer.shipping_address.country as country %}
-                        {% include "snippets/country_dropdown.html" with country=country %}
-                    {% endwith %}
-                    <input type="text"
-                           id="postalCode"
-                           value="{{ object.customer.shipping_address.postalCode }}"
-                           class="form-control mb-2">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">Name</span>
+                        <input type="text"
+                               id="name"
+                               value="{{ object.customer.shipping_address.name }}"
+                               class="form-control"
+                               data-customer-id="{{ object.customer.pk }}">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">Street</span>
+                        <input type="text"
+                               id="name"
+                               value="{{ object.customer.shipping_address.street }}"
+                               class="form-control">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">City</span>
+                        <input type="text"
+                               id="name"
+                               value="{{ object.customer.shipping_address.city }}"
+                               class="form-control">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">State</span>
+                        <input type="text"
+                               id="name"
+                               value="{{ object.customer.shipping_address.state }}"
+                               class="form-control">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">Country</span>
+                        {% with object.customer.shipping_address.country as country %}
+                            {% include "snippets/country_dropdown.html" with country=country id="country" %}
+                        {% endwith %}
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">Postal Code</span>
+                        <input type="text"
+                               id="name"
+                               value="{{ object.customer.shipping_address.postalCode }}"
+                               class="form-control">
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">Phone</span>
+                        <input type="text"
+                               id="name"
+                               value="{{ object.customer.shipping_address.phone }}"
+                               class="form-control">
+                    </div>
                     <button type="submit" class="btn btn-primary">Save</button>
                     <button type="button" class="btn btn-secondary cancel-edit">Cancel</button>
                 </form>

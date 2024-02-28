@@ -80,6 +80,10 @@ var gradeButtons = grades.map(function (item) {
             dt.ajax.reload();
           }, 200); // Adjust the delay duration as needed
         },
+        error: function (response) {
+          console.log(response.responseJSON);
+          alert(response.responseJSON.message);
+        },
         traditional: true,
       });
     },
@@ -108,6 +112,68 @@ function getCheckedGroupSwitches() {
   return grouping;
 }
 
+function toggleEdit(selectedRows) {
+  // Iterate over each selected row
+  selectedRows.every(function (rowIdx, tableLoop, rowLoop) {
+    var $row = $(this.node()); // Get the jQuery object for the current row
+    $row.addClass("table-warning"); // Highlight the row
+    // For each row, find the SKU input and related elements
+    var $input = $row.find(".sku-input");
+    var $editBtn = $row.find(".edit-sku");
+    var $submitBtn = $row.find(".submit-sku");
+
+    // Make the SKU inputs editable
+    $input.prop("readonly", false);
+
+    // Initially hide the submit button until a change is made
+    $submitBtn.addClass("d-none");
+
+    // Attach a change event listener to the SKU input to detect changes
+    $input.off("input.toggleEdit").on("input.toggleEdit", function () {
+      // When input value changes, show the corresponding submit button
+      $submitBtn.removeClass("d-none");
+    });
+  });
+  selectedRows.deselect(); // Deselect all rows after toggling edit mode
+}
+
+// Assuming '.submit-sku' buttons are inside DataTable rows and use delegated event binding for dynamic elements
+$(document).on("click", ".submit-sku", function () {
+  var $currentTd = $(this).closest("td");
+  var newSKU = $currentTd.find(".sku-input").val();
+
+  var tdIndex = $currentTd.index();
+
+  // Select the next four <td> elements after the current <td>
+  var deviceInfo = $currentTd
+    .closest("tr")
+    .find("td")
+    .slice(tdIndex + 1, tdIndex + 5)
+    .map(function () {
+      return $(this).text(); // Or adjust based on where the data is within the <td>
+    })
+    .get();
+
+  $.ajax({
+    url: "/updateSKU/",
+    type: "POST",
+    headers: { "X-CSRFToken": Cookies.get("csrftoken") },
+    data: {
+      new_sku: newSKU,
+      deviceInfo: deviceInfo,
+    },
+    success: function (response) {
+      alert(response.message); // Or handle the success case more gracefully
+      table.ajax.reload(null, false); // Reload the table data without resetting the paging
+    },
+    error: function (xhr, status, error) {
+      showTooltip($currentTd, xhr.responseJSON.error);
+      console.log(xhr.responseJSON);
+      // Optionally, display an error message
+    },
+  });
+});
+
 var batterySlider = $(function () {
   $("#slider-range").slider({
     range: true,
@@ -133,9 +199,16 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
     buttons: [
       "pageLength",
       "selectAll",
-      "selectNone",
       "changeStatus",
       "changeGrade",
+      {
+        text: "Edit SKUs",
+        action: function (e, dt, node, config) {
+          var selectedRows = dt.rows({ selected: true });
+          console.log(selectedRows);
+          toggleEdit(selectedRows);
+        },
+      },
       {
         text: "Delete",
         action: function (e, dt, node, config) {
@@ -166,6 +239,12 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
           }
         },
       },
+      {
+        extend: "excel",
+        text: "Export",
+        title: "Inventory Report",
+        exportOptions: { columns: ":visible" },
+      },
     ],
 
     ajax: {
@@ -190,6 +269,21 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
         data: "imei",
         render: function (data, type, row, meta) {
           return '<a href="detail/' + row.pk + '">' + data + "</a>";
+        },
+        visible: grouping.length === 0,
+        orderable: false,
+      },
+      {
+        data: "sku",
+        render: function (data, type, row, meta) {
+          return `
+              <div class="input-group">
+                  <input type="text" class="form-control sku-input" readonly value="${
+                    data ? data : "Missing"
+                  }" data-pk="${row.pk}" />
+                  <button class="btn btn-primary submit-sku d-none" type="button">Update</button>
+              </div>
+          `;
         },
         visible: grouping.length === 0,
         orderable: false,

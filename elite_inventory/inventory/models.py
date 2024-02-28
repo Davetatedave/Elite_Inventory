@@ -140,6 +140,7 @@ class customer(models.Model):
         verbose_name="Billing Address",
         related_name="billing_customers",
     )
+    company = models.CharField(max_length=50, verbose_name="Company", null=True)
     contact = models.CharField(max_length=20, verbose_name="Contact")
     phone = models.CharField(max_length=20, verbose_name="Phone", null=True)
     email = models.CharField(max_length=20, verbose_name="Email")

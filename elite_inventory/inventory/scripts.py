@@ -183,7 +183,9 @@ class BackMarketAPI:
         if settings.BM_PREPROD
         else "https://www.backmarket.co.uk/ws"
     )
-    API_KEY = settings.APIKEYS["BM_PRE"] if settings.DEBUG else settings.APIKEYS["BM"]
+    API_KEY = (
+        settings.APIKEYS["BM_PRE"] if settings.BM_PREPROD else settings.APIKEYS["BM"]
+    )
     HEADERS = {
         "Accept-Language": "en-gb",
         "Content-Type": "application/json",
@@ -201,7 +203,7 @@ class BackMarketAPI:
         querystring = {
             "page": 1,  # Reset page for each batch
             "page-size": 50,
-            # "publication_state": 2,
+            "publication_state": 2,
         }
         while True:
             response = requests.get(
@@ -317,7 +319,15 @@ class BackMarketAPI:
             results = responseJoin
         # Process each order
         for order in results:
+            breakpoint()
+            if salesOrders.objects.filter(so=order["order_id"]).exists():
+                continue
             # Get or Create Shipping Address
+            phone = (
+                order["shipping_address"]["phone"]
+                if order["shipping_address"]["phone"]
+                else "N/A"
+            )
             shipping_address, _ = address.objects.get_or_create(
                 name=order["shipping_address"]["first_name"]
                 + " "
@@ -327,7 +337,7 @@ class BackMarketAPI:
                 city=order["shipping_address"]["city"],
                 # state=order["shipping_address"]["state"],
                 postalCode=order["shipping_address"]["postal_code"],
-                phone=order["shipping_address"]["phone"],
+                phone=phone,
                 country=order["shipping_address"]["country"],
             )
 
@@ -341,7 +351,7 @@ class BackMarketAPI:
                 city=order["billing_address"]["city"],
                 # state=order["billing_address"]["state"],
                 postalCode=order["billing_address"]["postal_code"],
-                phone=order["billing_address"]["phone"],
+                phone=phone,
                 country=order["shipping_address"]["country"],
             )
 
@@ -352,6 +362,7 @@ class BackMarketAPI:
                 + order["shipping_address"]["last_name"],
                 shipping_address=shipping_address,
                 billing_address=billing_address,
+                company=order["shipping_address"]["company"],
                 defaults={
                     "contact": order["billing_address"]["first_name"]
                     + " "
@@ -379,7 +390,7 @@ class BackMarketAPI:
                     print(f'SKU:{orderline["listing"]}')
                     sku = deviceAttributes.objects.get(sku=orderline["listing"])
                 except deviceAttributes.DoesNotExist:
-                    sku = None
+                    sku = orderline["listing"]
                 salesOrderItem = salesOrderItems.objects.create(
                     salesorder=sales_order,
                     description=orderline["product"],
@@ -408,7 +419,6 @@ class BackMarketAPI:
 
     @classmethod
     def update_orders(cls, so):
-        breakpoint()
         sales_order = salesOrders.objects.prefetch_related("devices", "shipment").get(
             pk=so
         )
@@ -541,7 +551,7 @@ class DHLAPI:
                     },
                     "contactInformation": {
                         "phone": "07863679649",
-                        "companyName": "Elite Innovations",
+                        "companyName": "",
                         "fullName": ship_to_address.name,
                         "email": "david@eliteinnovations.co.uk",
                     },
@@ -621,16 +631,17 @@ class DHLAPI:
             },
         }
 
-        # response = requests.post(
-        #     url="https://express.api.dhl.com/mydhlapi/shipments",
-        #     headers=cls.HEADERS,
-        #     json=body,
-        # )
-        mock_response = get_mock()
-        tracking_number = mock_response["shipmentTrackingNumber"]
-        tracking_url = mock_response["trackingUrl"]
+        response = requests.post(
+            url="https://express.api.dhl.com/mydhlapi/shipments",
+            headers=cls.HEADERS,
+            json=body,
+        ).json()
+        breakpoint()
+        # mock_response = get_mock()
+        tracking_number = response["shipmentTrackingNumber"]
+        tracking_url = response["trackingUrl"]
         public_tracking_url = "N/A"  # This needs calculating
-        label = mock_response["documents"][0]["content"]
+        label = response["documents"][0]["content"]
 
         # Upload the label to GCP
         pdf_content = base64.b64decode(label)

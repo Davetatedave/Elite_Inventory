@@ -43,6 +43,7 @@
                     style="width: 100%">
                 {% for status in  device_attributes.status %}<option value="{{ status }}">{{ status }}</option>{% endfor %}
             </select>
+            <br>
             <p>
                 <label for="amount">Battery range:</label>
                 <input class="ranges" type="text" id="amount" readonly>
@@ -102,10 +103,13 @@
         </div>
     </div>
     <div class="row my-2">
-        <table id="invTable" class="display" style="width:100%">
+        <table id="invTable"
+               class="display table table-striped table-bordered"
+               style="width:100%">
             <thead>
                 <tr>
                     <th>IMEI</th>
+                    <th>SKU</th>
                     <th>Model</th>
                     <th>Capacity</th>
                     <th>Color</th>

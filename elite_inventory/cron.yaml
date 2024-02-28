@@ -1,0 +1,4 @@
+cron:
+  - description: "Get BM Orders"
+    url: /sales/getBmOrderscron
+    schedule: every 5 minutes

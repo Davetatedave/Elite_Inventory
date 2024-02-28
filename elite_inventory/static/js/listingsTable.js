@@ -42,7 +42,7 @@ $(document).ready(function () {
         render: function (data, type, row, meta) {
           return data != null
             ? '<a href="detail/' + row.listing_id + '">' + data + "</a>"
-            : '<a  href="/edit_sku/" class="btn btn-warning">Resolve SKU</a>';
+            : '<a  href="/edit_sku/" class="btn btn-warning">{{row.}}</a>';
         },
         orderable: false,
       },

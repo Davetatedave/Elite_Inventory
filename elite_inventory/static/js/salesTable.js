@@ -77,6 +77,12 @@ $(document).ready(function () {
             : Unknown; // Replace 'Not specified' with any default or placeholder text
         },
       },
+      {
+        render: function (data, type, row) {
+          return '<button class="btn btn-danger" id="delete-so">Delete</button>';
+        },
+        orderable: false,
+      },
     ],
     lengthMenu: [
       [10, 25, 50, -1],
@@ -87,11 +93,35 @@ $(document).ready(function () {
     serverSide: true,
     searching: true,
   });
+
   $(".filter").on("change", function () {
     salesTable.ajax.reload(function () {
       htmx.process(document.body);
     });
   });
+
+  // Delete Sales Order
+  $("#salesTable").on("click", "#delete-so", function () {
+    var row = $(this).closest("tr");
+    var data = salesTable.row(row).data();
+    var so_id = data.pk;
+    var so = data.order_id;
+    var r = confirm("Are you sure you want to delete Sales Order " + so + "?");
+    if (r == true) {
+      $.ajax({
+        headers: { "X-CSRFToken": Cookies.get("csrftoken") },
+        url: "/sales/delete/" + so_id,
+        type: "DELETE",
+        success: function (response) {
+          salesTable.ajax.reload();
+        },
+        error: function (xhr, response) {
+          alert("Cannot Delete orders with Associated Shipments");
+        },
+      });
+    }
+  });
+
   salesTable.on("init.dt", function () {
     let url = new URL(window.location.href);
     let so_search = url.searchParams.get("so");

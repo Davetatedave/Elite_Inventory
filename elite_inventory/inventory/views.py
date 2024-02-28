@@ -159,12 +159,26 @@ def newSKU(request):
 
 
 def updateSKU(request):
-    deviceAttributeId = request.POST.get("id")
+    deviceAttributeId = request.POST.get("id", None)
+    if deviceAttributeId == "":
+        deviceAttributeId = None
     newSKU = request.POST.get("new_sku")
+    deviceInfo = request.POST.getlist("deviceInfo[]")
+    try:
+        oldSku = deviceAttributes.objects.get(
+            model=deviceInfo[0],
+            capacity=deviceInfo[1],
+            color=deviceInfo[2],
+            grade=deviceInfo[3],
+        )
+        oldSku.sku = newSKU
+        oldSku.save()
 
-    deviceAttributes.objects.filter(pk=deviceAttributeId).update(sku=newSKU)
-
-    return JsonResponse({"message": "SKU updated successfully."})
+        return JsonResponse({"message": "SKU updated successfully."})
+    except Exception as e:
+        return JsonResponse(
+            {"message": "Error updating SKU.", "error": str(e)}, status=500
+        )
 
 
 class resolveMarketplaceSku(DetailView):
@@ -324,6 +338,7 @@ def inventoryAjax(request):
             {
                 "pk": device.pk,
                 "imei": device.imei,
+                "sku": device.sku.sku,
                 "model": device.sku.model,
                 "capacity": device.sku.capacity,
                 "color": device.sku.color,
@@ -375,10 +390,8 @@ def updateGrade(request):
         try:
             # Update the status of devices with the selected PKs
             devicesToUpdate = devices.objects.filter(pk__in=selected_pks)
-            newSKUs = []
             for device in devicesToUpdate:
-
-                new_device_attributes, created = deviceAttributes.objects.get_or_create(
+                new_device_attributes = deviceAttributes.objects.get(
                     model=device.sku.model,
                     color=device.sku.color,
                     capacity=device.sku.capacity,
@@ -386,12 +399,10 @@ def updateGrade(request):
                 )
                 device.sku = new_device_attributes
                 device.save()
-                if created:
-                    newSKUs.append(new_device_attributes)
             message = "Devices updated successfully."
             return JsonResponse({"message": message})
         except Exception as e:
-            message = "Error updating devices."
+            message = "Error updating devices. Check the SKU exists."
             return JsonResponse({"message": message, "error": str(e)}, status=500)
 
 
@@ -487,17 +498,19 @@ def BMlistingsajax(request):
         try:
             # Check if there is a linked SKU
             sku = listing.sku.sku
+            stock = 0
         except:
-            sku = None
+            sku = listing.bm_sku
+            stock = "SKU Mismatch"
         listing = {
             "SKU": sku,
             "listing_id": listing.listing_id,
             "product_name": listing.title.replace(" - Unlocked", ""),
             "stock_listed": listing.quantity,
-            "stock_available": 0,
+            "stock_available": stock,
         }
         # If there's a matching SKU get the available stock and remove it from the dictionary
-        if sku:
+        if stock != "SKU Mismatch":
             listing["stock_available"] = groupedStockDict.get(sku, 0)
             if sku in groupedStockDict:
                 groupedStockDict.pop(sku)
@@ -627,10 +640,26 @@ def addStockImeis(request):
     return render(request, context=context, template_name="upload.html")
 
 
+def deleteOrder(request, pk):
+    so = salesOrders.objects.get(pk=pk)
+    so.delete()
+    return JsonResponse({"message": "Order deleted successfully."})
+
+
 def getBmOrders(request):
-    BM.get_orders(state=1)
+    BM.get_orders(state=3)
     BM.get_listings()
-    return render(request, template_name="sales.html")
+    return render(request, template_name="sales.html", status=200)
+
+
+def getBmOrdersCron(request):
+    if request.method == "GET":
+        try:
+            BM.get_orders(state=3)
+            BM.get_listings()
+            return HttpResponse(status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
 
 def get_label(request, so):
@@ -855,18 +884,24 @@ def editSkuAjax(request):
             .prefetch_related("backmarket_listings")
             .first()
         )
-        values["internal_skus"] = skus.sku
-        values["bm_skus"] = (
-            skus.backmarket_listings.first().bm_sku
-            if skus.backmarket_listings.first()
-            else None
-        )
-        values["sku_id"] = skus.pk
-        values["bm_id"] = (
-            skus.backmarket_listings.first().pk
-            if skus.backmarket_listings.first()
-            else None
-        )
+        if skus:
+            values["internal_skus"] = skus.sku
+            values["bm_skus"] = (
+                skus.backmarket_listings.first().bm_sku
+                if skus.backmarket_listings.first()
+                else None
+            )
+            values["sku_id"] = skus.pk
+            values["bm_id"] = (
+                skus.backmarket_listings.first().pk
+                if skus.backmarket_listings.first()
+                else None
+            )
+        else:
+            values["internal_skus"] = None
+            values["bm_skus"] = None
+            values["sku_id"] = None
+            values["bm_id"] = None
 
     return JsonResponse(values)
 

@@ -70,14 +70,6 @@ function filtersRefresh() {
       // Set the selected value
       $("#capacitySelect").val(response.selected_capacity);
 
-      // Hide existing options for grade
-      $("#gradeSelect option").hide();
-
-      // Show options from the response
-      $.each(response.grade, function (index, value) {
-        $("#gradeSelect option[value='" + value + "']").show();
-      });
-
       // Set the selected value
       $("#gradeSelect").val(response.selected_grade);
 
@@ -103,10 +95,17 @@ $(".skus").on("change", function () {
       let new_sku = $(this).closest(".input-group").find(".skus").val();
       let id = $(this).closest(".input-group").find("input").data("id");
       let skuType = updateButton.data("sku_type");
+      let deviceInfo = [
+        $("#modelSelect").val(),
+        $("#capacitySelect").val(),
+        $("#colorSelect").val(),
+        $("#gradeSelect").val(),
+      ];
       let data = {
         new_sku: new_sku,
         id: id,
         skuType: skuType,
+        deviceInfo: deviceInfo,
       };
       $.ajax({
         url: "/updateSKU/",

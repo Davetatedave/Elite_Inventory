@@ -24,8 +24,10 @@ urlpatterns = [
     path("add_stock/", views.addStock, name="add_stock"),
     path("add_stock/imeis", views.addStockImeis, name="add_stock_imeis"),
     path("sales/getBmOrders", views.getBmOrders, name="getBmOrders"),
+    path("sales/getBmOrderscron", views.getBmOrdersCron, name="getBmOrdersCron"),
     path("salesajax/", views.salesajax, name="salesAjax"),
     path("sales/detail/<int:pk>", views.orderDetail.as_view(), name="orderDetail"),
+    path("sales/delete/<int:pk>", views.deleteOrder, name="deleteOrder"),
     path("shipping_rates/", views.getShippingRates, name="get_shipping_rates"),
     path("shipping_label/", views.buyShippingLabel, name="buyShippingLabel"),
     path(
