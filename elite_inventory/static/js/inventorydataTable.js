@@ -361,6 +361,9 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
     processing: true,
     serverSide: true,
     select: true,
+    language: {
+      searchPlaceholder: "Search by IMEI or SKU",
+    },
   });
   return invTable;
 }

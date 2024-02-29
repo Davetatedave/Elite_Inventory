@@ -32,6 +32,7 @@ from .scripts import (
 from collections import defaultdict
 from django.dispatch import receiver
 from django.db.models.signals import post_save
+from django.shortcuts import redirect
 import requests
 import json
 from django.conf import settings
@@ -43,58 +44,67 @@ import csv
 
 
 def index(request):
-    # Default date range: last 30 days
-    default_end_date = datetime.today().date()
-    christmas = datetime(datetime.today().year, 12, 25).date()
-    days_to_christmas = (christmas - default_end_date).days
-    default_start_date = default_end_date - timedelta(days=30)
+    if request.user.is_authenticated:
+        # Default date range: last 30 days
+        default_end_date = datetime.today().date()
+        christmas = datetime(datetime.today().year, 12, 25).date()
+        days_to_christmas = (christmas - default_end_date).days
+        default_start_date = default_end_date - timedelta(days=30)
 
-    start_date_str = request.GET.get("start_date")
-    end_date_str = request.GET.get("end_date")
-    start_date = parse_date(start_date_str) if start_date_str else default_start_date
-    end_date = parse_date(end_date_str) if end_date_str else default_end_date
-    print(start_date, end_date)
-    queryset = trackingDb.objects.all()
-
-    if start_date and end_date:
-        if start_date > end_date:
-            raise ValueError("Start date cannot be greater than end date")
-        queryset = queryset.filter(
-            date_creation__gte=start_date, date_creation__lte=end_date
-        ).order_by("date_creation")
-
-    # Apply grouping logic based on request
-    group_status = request.GET.get("grouped", "individual")
-
-    if group_status != "individual":
-        print("grouped")
-        queryset = (
-            queryset.values(group_status)
-            .annotate(count=Count(group_status))
-            .order_by("-count")
+        start_date_str = request.GET.get("start_date")
+        end_date_str = request.GET.get("end_date")
+        start_date = (
+            parse_date(start_date_str) if start_date_str else default_start_date
         )
+        end_date = parse_date(end_date_str) if end_date_str else default_end_date
+        print(start_date, end_date)
+        queryset = trackingDb.objects.all()
 
-    page = request.GET.get("page", 1)
-    paginator = Paginator(queryset, 10)
-    table_info = paginator.get_page(page)
-    statuses = trackingDb.objects.values_list("Arrival_Status", flat=True).distinct()
+        if start_date and end_date:
+            if start_date > end_date:
+                raise ValueError("Start date cannot be greater than end date")
+            queryset = queryset.filter(
+                date_creation__gte=start_date, date_creation__lte=end_date
+            ).order_by("date_creation")
 
-    context = {
-        "page_title": "Welcome",
-        "table": table_info,
-        "request": request,
-        "statuses": statuses,
-        "days_to_christmas": days_to_christmas,
-        "date": (start_date, end_date),
-        "currentpage": page,
-    }
+        # Apply grouping logic based on request
+        group_status = request.GET.get("grouped", "individual")
 
-    if request.headers.get("HX-Request", "false") == "true":
-        template_name = "inv_table_grouped.html" if group_status else "inv_table.html"
-        html = render_to_string(template_name, context, request=request)
-        return HttpResponse(html)
+        if group_status != "individual":
+            print("grouped")
+            queryset = (
+                queryset.values(group_status)
+                .annotate(count=Count(group_status))
+                .order_by("-count")
+            )
 
-    return render(request, "index.html", context=context)
+        page = request.GET.get("page", 1)
+        paginator = Paginator(queryset, 10)
+        table_info = paginator.get_page(page)
+        statuses = trackingDb.objects.values_list(
+            "Arrival_Status", flat=True
+        ).distinct()
+
+        context = {
+            "page_title": "Welcome",
+            "table": table_info,
+            "request": request,
+            "statuses": statuses,
+            "days_to_christmas": days_to_christmas,
+            "date": (start_date, end_date),
+            "currentpage": page,
+        }
+
+        if request.headers.get("HX-Request", "false") == "true":
+            template_name = (
+                "inv_table_grouped.html" if group_status else "inv_table.html"
+            )
+            html = render_to_string(template_name, context, request=request)
+            return HttpResponse(html)
+
+        return render(request, "index.html", context=context)
+    else:
+        return redirect("login")
 
 
 def shipping(request):
@@ -257,7 +267,10 @@ def inventoryAjax(request):
 
     # Apply additional filtering based on the search query
     if search_value:
-        phones = phones.filter(imei__icontains=search_value)
+        if search_value.isdigit():
+            phones = phones.filter(imei__icontains=search_value)
+        else:
+            phones = phones.filter(sku__sku__icontains=search_value)
 
     if bulk_search_value != [""]:
         listofImeis = bulk_search_value[0].splitlines()
@@ -267,7 +280,6 @@ def inventoryAjax(request):
             for item in sublist
             if item != ""
         ]
-        print(imeiscleaned)
         phones = phones.filter(imei__in=imeiscleaned)
 
     if models:
@@ -441,7 +453,10 @@ def salesajax(request):
     sales = salesOrders.objects.select_related("customer").prefetch_related("items")
     # Apply additional filtering based on the search query
     if search_value:
-        sales = sales.filter(so__icontains=search_value)
+        if search_value.isdigit():
+            sales = sales.filter(so__icontains=search_value)
+        else:
+            sales = sales.filter(customer__name__icontains=search_value)
 
     if status:
         sales = sales.filter(state=status)
@@ -459,6 +474,7 @@ def salesajax(request):
             "channel": so.customer.channel,
             "customer": so.customer.name,
             "quantity": sum([item.quantity for item in so.items.all()]),
+            "sku": so.items.first().sku.sku,
             "state": so.state,
         }
         for so in sales[start : start + length]
@@ -474,7 +490,6 @@ def salesajax(request):
 
 
 def listings(request):
-
     last_updated = BackMarketListing.history.latest().history_date
     context = {"last_updated": last_updated}
 
@@ -574,29 +589,23 @@ def getPickList(request):
     # Get the list of sales orders that are not yet picked
     sales_orders = salesOrders.objects.filter(state="Confirmed")
 
-    # Create a dictionary to store the pick list data
-    pick_list = defaultdict(list)
-
     response = HttpResponse(
         content_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="picklist.csv"'},
     )
 
     writer = csv.writer(response)
-    writer.writerow(["sku", "quantity", "model", "capacity", "color", "grade"])
-    # Iterate through the sales orders and get the items
+    writer.writerow(["Marketplace", "SKU", "Quantity"])
+    picklist = {"BackMarket": defaultdict(int), "Refurbed": defaultdict(int)}
     for so in sales_orders:
+        marketplace = so.customer.channel
+
         for item in so.items.all():
-            writer.writerow(
-                [
-                    item.sku.sku,
-                    item.quantity,
-                    item.sku.model,
-                    item.sku.capacity,
-                    item.sku.color,
-                    item.sku.grade,
-                ]
-            )
+            picklist[marketplace][item.sku.sku] += item.quantity
+
+    for marketplace, skus in picklist.items():
+        for sku, quantity in skus.items():
+            writer.writerow([marketplace, sku, quantity])
 
     return response
 
@@ -926,5 +935,4 @@ def getSkuData(request):
         }
         data.append(data_entry)
         print(data)
-        breakpoint()
     return JsonResponse({"data": data})

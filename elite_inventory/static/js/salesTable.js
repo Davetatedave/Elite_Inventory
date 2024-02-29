@@ -25,7 +25,9 @@ $(document).ready(function () {
         return $.extend({}, d, {
           channel: $("#channelFilter").val(),
           status: $("#statusFilter").val(),
-          success: function (response) {},
+          success: function (response) {
+            htmx.process(document.body);
+          },
         });
       },
       dataSrc: "data", // Data property name in the JSON response
@@ -84,6 +86,15 @@ $(document).ready(function () {
         orderable: false,
       },
     ],
+    rowGroup: {
+      dataSrc: "sku",
+      startRender: function (rows, group) {
+        number = rows.count();
+        return (
+          group + " (" + number + " Device" + (number > 1 ? "s" : "") + ")"
+        );
+      },
+    },
     lengthMenu: [
       [10, 25, 50, -1],
       [10, 25, 50, "All"],

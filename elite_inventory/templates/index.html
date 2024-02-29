@@ -5,7 +5,7 @@
 {% block content %}
     {% load static %}
     <h1>
-        Hello, Chris.
+        Hello, {{ user.username | title }}.
         <br>
         It's currently {{ days_to_christmas }} Days Until Christmas
     </h1>

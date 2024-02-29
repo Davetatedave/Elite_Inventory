@@ -86,11 +86,9 @@ class PhoneCheckAPI:
         headersList = {"Content-Type": "application/json"}
 
         payload = json.dumps({**cls.INFO, "IMEI": imeis, "archive_search": 1})
-
         response = requests.request("POST", reqUrl, data=payload, headers=headersList)
 
         devicesFromPC = response.json()
-
         return devicesFromPC
 
     @classmethod
@@ -319,7 +317,6 @@ class BackMarketAPI:
             results = responseJoin
         # Process each order
         for order in results:
-            breakpoint()
             if salesOrders.objects.filter(so=order["order_id"]).exists():
                 continue
             # Get or Create Shipping Address
@@ -551,7 +548,11 @@ class DHLAPI:
                     },
                     "contactInformation": {
                         "phone": "07863679649",
-                        "companyName": "",
+                        "companyName": (
+                            customer_instance.company
+                            if customer_instance.company
+                            else ship_to_address.name
+                        ),
                         "fullName": ship_to_address.name,
                         "email": "david@eliteinnovations.co.uk",
                     },
@@ -630,13 +631,11 @@ class DHLAPI:
                 "declaredValue": 150,
             },
         }
-
         response = requests.post(
             url="https://express.api.dhl.com/mydhlapi/shipments",
             headers=cls.HEADERS,
             json=body,
         ).json()
-        breakpoint()
         # mock_response = get_mock()
         tracking_number = response["shipmentTrackingNumber"]
         tracking_url = response["trackingUrl"]
