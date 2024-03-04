@@ -229,154 +229,159 @@ def inventory(request):
 
 
 def inventoryAjax(request):
-    # Extract parameters sent by DataTables
-    start = int(request.GET.get("start", 0))
-    length = int(request.GET.get("length", 10))  # Default page size
+    try:
+        # Extract parameters sent by DataTables
+        start = int(request.GET.get("start", 0))
+        length = int(request.GET.get("length", 10))  # Default page size
 
-    search_value = request.GET.get("search[value]", None)
-    bulk_search_value = request.GET.getlist("bulk_search_value", None)
+        search_value = request.GET.get("search[value]", None)
+        bulk_search_value = request.GET.getlist("bulk_search_value", None)
 
-    # Data filtering and processing logic here
+        # Data filtering and processing logic here
 
-    models = request.GET.getlist("model[]", None)
-    capacity = request.GET.getlist("capacity[]", None)
-    grades = request.GET.getlist("grade[]", None)
-    colors = request.GET.getlist("color[]", None)
-    batteryA = request.GET.get("batteryA", None)
-    batteryB = request.GET.get("batteryB", None)
-    status = request.GET.getlist("status[]", None)
-    order = request.GET.get("order[0][column]", None)
-    grouping = request.GET.getlist("grouping[]", None)
+        models = request.GET.getlist("model[]", None)
+        capacity = request.GET.getlist("capacity[]", None)
+        grades = request.GET.getlist("grade[]", None)
+        colors = request.GET.getlist("color[]", None)
+        batteryA = request.GET.get("batteryA", None)
+        batteryB = request.GET.get("batteryB", None)
+        status = request.GET.getlist("status[]", None)
+        order = request.GET.get("order[0][column]", None)
+        grouping = request.GET.getlist("grouping[]", None)
 
-    if "Deleted" in status or "Sold" in status:
-        phones = (
-            devices.all_objects.select_related("sku")
-            .select_related("deviceStatus")
-            .all()
-        )
-    else:
-        phones = (
-            devices.available.select_related("sku").select_related("deviceStatus").all()
-        )
-
-        # Pagination parameters
-    start = int(request.GET.get("start", 0))
-    length = int(request.GET.get("length", 10))
-    if length == -1:
-        length = phones.count()
-
-    # Apply additional filtering based on the search query
-    if search_value:
-        if search_value.isdigit():
-            phones = phones.filter(imei__icontains=search_value)
+        if "Deleted" in status or "Sold" in status:
+            phones = (
+                devices.all_objects.select_related("sku")
+                .select_related("deviceStatus")
+                .all()
+            )
         else:
-            phones = phones.filter(sku__sku__icontains=search_value)
-
-    if bulk_search_value != [""]:
-        listofImeis = bulk_search_value[0].splitlines()
-        imeiscleaned = [
-            item
-            for sublist in [i.split(",") for i in listofImeis]
-            for item in sublist
-            if item != ""
-        ]
-        phones = phones.filter(imei__in=imeiscleaned)
-
-    if models:
-        phones = phones.filter(sku__model__in=models)
-
-    if capacity:
-        phones = phones.filter(sku__capacity__in=capacity)
-
-    if colors:
-        phones = phones.filter(sku__color__in=colors)
-
-    if grades:
-        phones = phones.filter(sku__grade__in=grades)
-
-    if status:
-        if "Unknown" in status:
-            phones = phones.filter(deviceStatus__status__in=status) | phones.filter(
-                deviceStatus__isnull=True
+            phones = (
+                devices.available.select_related("sku")
+                .select_related("deviceStatus")
+                .all()
             )
 
+            # Pagination parameters
+        start = int(request.GET.get("start", 0))
+        length = int(request.GET.get("length", 10))
+        if length == -1:
+            length = phones.count()
+
+        # Apply additional filtering based on the search query
+        if search_value:
+            if search_value.isdigit():
+                phones = phones.filter(imei__icontains=search_value)
+            else:
+                phones = phones.filter(sku__sku__icontains=search_value)
+
+        if bulk_search_value != [""]:
+            listofImeis = bulk_search_value[0].splitlines()
+            imeiscleaned = [
+                item
+                for sublist in [i.split(",") for i in listofImeis]
+                for item in sublist
+                if item != ""
+            ]
+            phones = phones.filter(imei__in=imeiscleaned)
+
+        if models:
+            phones = phones.filter(sku__model__in=models)
+
+        if capacity:
+            phones = phones.filter(sku__capacity__in=capacity)
+
+        if colors:
+            phones = phones.filter(sku__color__in=colors)
+
+        if grades:
+            phones = phones.filter(sku__grade__in=grades)
+
+        if status:
+            if "Unknown" in status:
+                phones = phones.filter(deviceStatus__status__in=status) | phones.filter(
+                    deviceStatus__isnull=True
+                )
+
+            else:
+                phones = phones.filter(deviceStatus__status__in=status)
+
+        if batteryA:
+            phones = phones.filter(battery__gte=batteryA)
+        if batteryB:
+            phones = phones.filter(battery__lte=batteryB)
+
+        if order:
+            column_order = request.GET.get(f"columns[{order}][data]", None)
+            print(column_order)
+            direction = request.GET.get("order[0][dir]", None)
+
+            if direction == "desc":
+                print(direction)
+                phones = phones.order_by(f"-{column_order}")
+            else:
+                print(direction)
+                phones = phones.order_by(column_order)
+
+        if grouping != []:
+            # Apply grouping
+            formatted_groupings = [
+                f"deviceStatus__status" if group == "status" else f"sku__{group}"
+                for group in grouping
+            ]
+            phones = (
+                phones.values(*formatted_groupings)
+                .annotate(count=Count("id"))
+                .order_by("-count")
+            )
+
+            # Creating response data
+            data = []
+            for phone in phones[start : start + length]:
+                data_entry = {}
+                for formatted_group in formatted_groupings:
+                    # Splitting the formatted group name to get the original name
+                    original_group = formatted_group.split("__")[-1]
+                    data_entry[original_group] = phone.get(formatted_group)
+                data_entry["count"] = phone["count"]
+                data.append(data_entry)
+
+        # Apply pagination to the data
         else:
-            phones = phones.filter(deviceStatus__status__in=status)
+            data = [
+                {
+                    "pk": device.pk,
+                    "imei": device.imei,
+                    "sku": device.sku.sku,
+                    "model": device.sku.model,
+                    "capacity": device.sku.capacity,
+                    "color": device.sku.color,
+                    "grade": device.sku.grade,
+                    "battery": device.battery,
+                    "status": (
+                        device.deviceStatus.status if device.deviceStatus else "Unknown"
+                    ),
+                    "so": device.so.so if device.so else None,
+                    "so_id": device.so.pk if device.so else None,
+                    "count": 1,
+                }
+                for device in phones[start : start + length]
+            ]
 
-    if batteryA:
-        phones = phones.filter(battery__gte=batteryA)
-    if batteryB:
-        phones = phones.filter(battery__lte=batteryB)
+        # Get the total count of records (for pagination info)
+        total_records = phones.count()
 
-    if order:
-        column_order = request.GET.get(f"columns[{order}][data]", None)
-        print(column_order)
-        direction = request.GET.get("order[0][dir]", None)
+        response_data = {
+            "data": data,
+            "grouping": grouping,
+            "recordsTotal": total_records,
+            "recordsFiltered": total_records,  # Set this to the filtered count if applicable
+        }
 
-        if direction == "desc":
-            print(direction)
-            phones = phones.order_by(f"-{column_order}")
-        else:
-            print(direction)
-            phones = phones.order_by(column_order)
+        return JsonResponse(response_data)
 
-    if grouping != []:
-        # Apply grouping
-        formatted_groupings = [
-            f"deviceStatus__status" if group == "status" else f"sku__{group}"
-            for group in grouping
-        ]
-        print(formatted_groupings)
-        phones = (
-            phones.values(*formatted_groupings)
-            .annotate(count=Count("id"))
-            .order_by("-count")
-        )
-
-        # Creating response data
-        data = []
-        for phone in phones[start : start + length]:
-            data_entry = {}
-            for formatted_group in formatted_groupings:
-                # Splitting the formatted group name to get the original name
-                original_group = formatted_group.split("__")[-1]
-                data_entry[original_group] = phone.get(formatted_group)
-            data_entry["count"] = phone["count"]
-            data.append(data_entry)
-
-    # Apply pagination to the data
-    else:
-        data = [
-            {
-                "pk": device.pk,
-                "imei": device.imei,
-                "sku": device.sku.sku,
-                "model": device.sku.model,
-                "capacity": device.sku.capacity,
-                "color": device.sku.color,
-                "grade": device.sku.grade,
-                "battery": device.battery,
-                "status": (
-                    device.deviceStatus.status if device.deviceStatus else "Unknown"
-                ),
-                "so": device.so.so if device.so else None,
-                "so_id": device.so.pk if device.so else None,
-                "count": 1,
-            }
-            for device in phones[start : start + length]
-        ]
-
-    # Get the total count of records (for pagination info)
-    total_records = phones.count()
-
-    response_data = {
-        "data": data,
-        "grouping": grouping,
-        "recordsTotal": total_records,
-        "recordsFiltered": total_records,  # Set this to the filtered count if applicable
-    }
-
-    return JsonResponse(response_data)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 def updateStatus(request):
@@ -463,7 +468,7 @@ def salesajax(request):
 
     if channel != "All":
         sales = sales.filter(customer__channel=channel)
-
+    sales.order_by("items__sku__sku")
     total_records = sales.count()
 
     data = [

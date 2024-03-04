@@ -262,6 +262,9 @@ function initialiseTable(grouping = getCheckedGroupSwitches()) {
           grouping: grouping,
         });
       },
+      error: function (xhr) {
+        showTooltip($("#bulkImeiInput"), xhr.responseJSON.error);
+      },
       dataSrc: "data", // Data property name in the JSON response
     },
     columns: [

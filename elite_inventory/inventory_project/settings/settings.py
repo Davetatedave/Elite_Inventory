@@ -22,6 +22,7 @@ APIKEYS = {
     "USPS": os.getenv("USPS_API_KEY"),
     "BM": os.getenv("BM_API"),
     "BM_PRE": os.getenv("BM_PRE_API"),
+    "REFURBED": os.getenv("REFURBED_API"),
 }
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
     "inventory",
     "django_htmx",
     "simple_history",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [

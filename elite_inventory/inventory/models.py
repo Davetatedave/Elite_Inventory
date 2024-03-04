@@ -290,6 +290,30 @@ class BackMarketListing(models.Model):
     )
     history = HistoricalRecords()
 
+    def __str__(self):
+        return self.bm_sku
+
+
+class RefurbedListing(models.Model):
+    listing_id = models.IntegerField(unique=True, primary_key=True)
+    sku = models.ForeignKey(
+        deviceAttributes,
+        on_delete=models.PROTECT,
+        verbose_name="SKU",
+        null=True,
+        related_name="refurbed_listings",
+    )
+    refurbed_sku = models.CharField(max_length=100, verbose_name="Refurbed SKU")
+    title = models.CharField(max_length=255)
+    quantity = models.IntegerField(null=True, blank=True)
+    ref_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    history = HistoricalRecords()
+
+    def __str__(self):
+        return self.refurbed_sku
+
 
 class faults(models.Model):
     device = models.ForeignKey(devices, on_delete=models.CASCADE)

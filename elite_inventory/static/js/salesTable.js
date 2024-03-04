@@ -25,11 +25,9 @@ $(document).ready(function () {
         return $.extend({}, d, {
           channel: $("#channelFilter").val(),
           status: $("#statusFilter").val(),
-          success: function (response) {
-            htmx.process(document.body);
-          },
         });
       },
+
       dataSrc: "data", // Data property name in the JSON response
     },
     columns: [
@@ -95,6 +93,7 @@ $(document).ready(function () {
         );
       },
     },
+
     lengthMenu: [
       [10, 25, 50, -1],
       [10, 25, 50, "All"],
@@ -109,6 +108,10 @@ $(document).ready(function () {
     salesTable.ajax.reload(function () {
       htmx.process(document.body);
     });
+  });
+
+  $("#salesTable").on("draw.dt", function () {
+    htmx.process(document.body);
   });
 
   // Delete Sales Order

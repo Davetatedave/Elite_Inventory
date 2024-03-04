@@ -17,6 +17,7 @@ from .models import (
     address,
     currencies,
     shipment,
+    RefurbedListing,
 )
 from collections import defaultdict
 from django.db import IntegrityError
@@ -192,7 +193,7 @@ class BackMarketAPI:
     }
 
     @classmethod
-    def get_listings(cls, start=0, page_length=50):
+    def get_listings(cls, publication_state=2, start=0, page_length=50):
         BackMarketListing.objects.all().update(quantity=0)
         results = []
         skus_to_fetch = []
@@ -201,7 +202,7 @@ class BackMarketAPI:
         querystring = {
             "page": 1,  # Reset page for each batch
             "page-size": 50,
-            "publication_state": 2,
+            "publication_state": publication_state,
         }
         while True:
             response = requests.get(
@@ -684,6 +685,33 @@ class GCPAPI:
         file_buffer.seek(0)
 
         return file_buffer
+
+
+class REFURBEDAPI:
+    BASE_URL = "https://api.refurbed.com/refb.merchant.v1."
+    HEADERS = {"Authorization": settings.APIKEYS["REFURBED"]}
+
+    @classmethod
+    def get_listings(cls):
+        body = {"filter": {"stock": {"gt": 0}}}
+        url = f"{cls.BASE_URL}OfferService/ListOffers"
+        response = requests.post(url, headers=cls.HEADERS, json=body).json()["offers"]
+        for listing in response:
+            try:
+                sku_instance = deviceAttributes.objects.get(sku=listing["sku"])
+            except:
+                sku_instance = None
+            if RefurbedListing.objects.filter(refurbed_id=listing["id"]).exists():
+                continue
+            RefurbedListing.objects.create(
+                listing_id=listing["id"],
+                title=listing["instance_name"],
+                sku=sku_instance,
+                quantity=listing["stock"],
+                refurbed_sku=listing["sku"],
+                ref_price=listing["reference_price"],
+            )
+        return response
 
 
 def calculateSKU(phoneData):
