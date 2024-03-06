@@ -4,36 +4,31 @@
 {% endblock title %}
 {% block content %}
     {% load static %}
-    <h1>Backmarket Listings</h1>
-    <h3>Last Updated: {{ last_updated }}</h3>
-    <!-- djlint:off -->
-                            <table id="BMlistings" style="width:100%">
-                                <thead>
-                                    <input type="checkbox" id="macToggle" />
-                                    Include Macs
-                                    <tr>
-                                        <th>SKU</th>
-                                        <th>Product Name</th>
-                                        <th>Stock Listed</th>
-                                        <th>Stock Available</th>
-                                        <th>Adjust Stock</th>
-            </tr>
-        </thead>
-        <tbody>
-<!-- djlint:on -->
-</tbody>
-</table>
-<!-- Modal -->
-<div id="modals-here"
-     class="float"
-     x-show="modalShow"
-     x-transition
-     x-cloak
-     @click.outside="modalShow = false">
-    <h2>Loading...</h2>
-</div>
-<!-- Modal Background -->
-<div x-show="modalShow" class="overlay"></div>
-<!-- End of Modal -->
-<script src="{% static 'js/listingsTable.js' %}"></script>
+    <h1>Marketplace Listings</h1>
+    <input type="checkbox"
+           id="managetoggle"
+           {% if manage_stock %}checked{% endif %} />
+    Manage Stock
+    <ul class="nav nav-tabs" id='marketplaceSelect'>
+        <li class="nav-item">
+            <a class="nav-link active" href="#" data-value="BM">BackMarket</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link " href="#" data-value="Refurbed">Refurbed</a>
+        </li>
+    </ul>
+    <div class="p-2 container-fluid border rounded-bottom rounded-right"
+         id="marketplacetabcontainer"></div>
+    <div id="modals-here"
+         class="float"
+         x-show="modalShow"
+         x-transition
+         x-cloak
+         @click.outside="modalShow = false">
+        <h2>Loading...</h2>
+    </div>
+    <!-- Modal Background -->
+    <div x-show="modalShow" class="overlay"></div>
+    <!-- End of Modal -->
+    <script src="{% static 'js/listingsTable.js' %}"></script>
 {% endblock content %}

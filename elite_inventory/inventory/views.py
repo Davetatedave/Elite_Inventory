@@ -16,6 +16,8 @@ from .models import (
     customer,
     address,
     shipment,
+    AppConfig,
+    RefurbedListing,
 )
 from datetime import datetime, timedelta
 from django.views.generic import ListView, DetailView, UpdateView, CreateView
@@ -495,8 +497,23 @@ def salesajax(request):
 
 
 def listings(request):
+    if request.method == "POST":
+        value = request.POST.get("manage")
+        AppConfig.set_value("manage_stock", value)
+        return JsonResponse({"message": "Settings updated successfully."})
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+
+        marketplace = request.GET.get("marketplace")
+        if marketplace == "BM":
+            template_name = "BMlistings.html"
+        else:
+            template_name = "Refurbedlistings.html"
+        html = render_to_string(template_name=template_name)
+        return JsonResponse({"html": html})
+
     last_updated = BackMarketListing.history.latest().history_date
-    context = {"last_updated": last_updated}
+    manage_stock = AppConfig.get_value("manage_stock", "false") == "true"
+    context = {"last_updated": last_updated, "manage_stock": manage_stock}
 
     return render(request, context=context, template_name="listings.html")
 
@@ -553,6 +570,76 @@ def BMlistingsajax(request):
             "SKU": sku,
             "listing_id": nonelistedDict.get(sku, (0, "Missing SKU on BM"))[1],
             "product_name": nonelistedDict.get(sku, ("Missing SKU on BM", 0))[
+                0
+            ].replace(" - Unlocked", ""),
+            "stock_listed": 0,
+            "stock_available": count,
+        }
+        data.append(listing)
+    sortedData = sorted(data, key=lambda d: d["stock_listed"], reverse=True)
+    print(sortedData)
+    total_records = len(data)
+    response_data = {
+        "data": sortedData[start : page_length + start],
+        "recordsTotal": total_records,
+        "recordsFiltered": total_records,
+    }
+
+    return JsonResponse(response_data)
+
+
+def RElistingssajax(request):
+    page_length = int(request.GET.get("length", 10))
+    start = int(request.GET.get("start", 0))
+
+    # Convert to dictionary for easy lookup
+    groupedStockDict = calculate_available_stock(battery=80)
+
+    data = []
+    # Get Backmarket Listings with stock (note, this may be old data)
+
+    listings = RefurbedListing.objects.filter(quantity__gt=0).order_by("quantity")
+
+    # Iterate through listings and check if there is stock in Elite Inventory
+    for listing in listings:
+        try:
+            # Check if there is a linked SKU
+            sku = listing.sku.sku
+            stock = 0
+        except:
+            sku = listing.refurbed_sku
+            stock = "SKU Mismatch"
+        listing = {
+            "SKU": sku,
+            "listing_id": listing.listing_id,
+            "product_name": listing.title,
+            "stock_listed": listing.quantity,
+            "stock_available": stock,
+        }
+        # If there's a matching SKU get the available stock and remove it from the dictionary
+        if stock != "SKU Mismatch":
+            listing["stock_available"] = groupedStockDict.get(sku, 0)
+            if sku in groupedStockDict:
+                groupedStockDict.pop(sku)
+        else:
+            listing["stock_available"] = "SKU Mismatch"
+        data.append(listing)
+
+    # Find the BM Listing Data of the SKUs that are not online
+    nonelisted = RefurbedListing.objects.filter(
+        sku__sku__in=groupedStockDict.keys()
+    ).values("sku__sku", "title", "listing_id")
+
+    # Create a dictionary of the nonelisted SKUs for easy lookup
+    nonelistedDict = {
+        item["sku__sku"]: (item["title"], item["listing_id"]) for item in nonelisted
+    }
+    # Iterate through the nonelisted SKUs and add them to the data
+    for sku, count in groupedStockDict.items():
+        listing = {
+            "SKU": sku,
+            "listing_id": nonelistedDict.get(sku, (0, "Missing SKU on Refurbed"))[1],
+            "product_name": nonelistedDict.get(sku, ("Missing SKU on Refurbed", 0))[
                 0
             ].replace(" - Unlocked", ""),
             "stock_listed": 0,

@@ -5,6 +5,25 @@ from simple_history.models import HistoricalRecords
 
 
 # Create your models here.
+
+
+class AppConfig(models.Model):
+    key = models.CharField(max_length=255, unique=True)
+    value = models.TextField()
+
+    @classmethod
+    def get_value(cls, key, default=None):
+        try:
+            return cls.objects.get(key=key).value
+        except cls.DoesNotExist:
+            return default
+
+    @classmethod
+    def set_value(cls, key, value):
+        obj, created = cls.objects.update_or_create(key=key, defaults={"value": value})
+        return obj
+
+
 class trackingDb(models.Model):
     order_id = models.IntegerField(primary_key=True, verbose_name="Order ID")
     ol_state = models.IntegerField(verbose_name="State")

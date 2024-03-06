@@ -18,6 +18,7 @@ from .models import (
     currencies,
     shipment,
     RefurbedListing,
+    AppConfig,
 )
 from collections import defaultdict
 from django.db import IntegrityError
@@ -251,18 +252,21 @@ class BackMarketAPI:
                 },
             )
             items.append(instance)
-        available_stock = calculate_available_stock()
-        # for listing in items:
-        #     try:
-        #         sku = listing.sku.sku
-        #         if listing.quantity > available_stock.get(listing.sku.sku, 0):
-        #             cls.update_listing(
-        #                 listing.listing_id, available_stock.get(listing.sku.sku, 0)
-        #             )
-        #             listing.quantity = available_stock.get(listing.sku.sku, 0)
-        #             listing.save()
-        #     except:
-        #         pass
+        manage_stock = AppConfig.get_value("manage_stock", "false") == "true"
+        breakpoint()
+        if manage_stock:
+            for listing in items:
+                available_stock = calculate_available_stock()
+                try:
+                    sku = listing.sku.sku
+                    if listing.quantity > available_stock.get(listing.sku.sku, 0):
+                        cls.update_listing(
+                            listing.listing_id, available_stock.get(listing.sku.sku, 0)
+                        )
+                        listing.quantity = available_stock.get(listing.sku.sku, 0)
+                        listing.save()
+                except:
+                    pass
         total = len(items)
         return items, total
 
@@ -693,16 +697,16 @@ class REFURBEDAPI:
 
     @classmethod
     def get_listings(cls):
-        body = {"filter": {"stock": {"gt": 0}}}
+        # TODO: Implement pagination
+        # body = {"filter": {"stock": {"gt": 0}}}
         url = f"{cls.BASE_URL}OfferService/ListOffers"
-        response = requests.post(url, headers=cls.HEADERS, json=body).json()["offers"]
+        response = requests.post(url, headers=cls.HEADERS).json()["offers"]
+        breakpoint()
         for listing in response:
             try:
                 sku_instance = deviceAttributes.objects.get(sku=listing["sku"])
             except:
                 sku_instance = None
-            if RefurbedListing.objects.filter(refurbed_id=listing["id"]).exists():
-                continue
             RefurbedListing.objects.create(
                 listing_id=listing["id"],
                 title=listing["instance_name"],

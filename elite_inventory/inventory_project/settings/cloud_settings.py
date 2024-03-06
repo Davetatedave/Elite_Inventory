@@ -46,6 +46,7 @@ APIKEYS = {
     "DHL": access_secret_version("DHL_API_KEY"),
     "BM": access_secret_version("BM_API"),
     "BM_PRE": access_secret_version("BM_PRE_API"),
+    "REFURBED": access_secret_version("REFURBED_API"),
 }
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
