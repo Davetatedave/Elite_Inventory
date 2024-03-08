@@ -555,7 +555,11 @@ class DHLAPI:
                             else ship_to_address.name
                         ),
                         "fullName": ship_to_address.name,
-                        "email": customer_instance.email,
+                        "email": (
+                            customer_instance.email
+                            if customer_instance.email
+                            else "david@eliteinnovations.co.uk"
+                        ),
                     },
                     "registrationNumbers": [
                         {
