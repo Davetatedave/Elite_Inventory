@@ -30,6 +30,7 @@ from .scripts import (
     calculateSKU,
     BackMarketAPI as BM,
     DHLAPI as DHL,
+    REFURBEDAPI as RE,
 )
 from collections import defaultdict
 from django.dispatch import receiver
@@ -577,7 +578,6 @@ def BMlistingsajax(request):
         }
         data.append(listing)
     sortedData = sorted(data, key=lambda d: d["stock_listed"], reverse=True)
-    print(sortedData)
     total_records = len(data)
     response_data = {
         "data": sortedData[start : page_length + start],
@@ -672,8 +672,27 @@ def updateBMquantity(request):
             return JsonResponse({"message": message, "error": str(e)}, status=500)
 
 
+def updateREquantity(request):
+    if request.method == "POST":
+        listing_id = request.POST.get("listing_id")
+        quantity = request.POST.get("quantity")
+        try:
+            response = RE.update_listing(listing_id=listing_id, quantity=quantity)
+            print(response)
+            message = "Quantity updated successfully."
+            return JsonResponse({"message": message})
+        except Exception as e:
+            message = "Error updating quantity."
+            return JsonResponse({"message": message, "error": str(e)}, status=500)
+
+
 def getBMdata(request):
     BM.get_listings()
+    return JsonResponse({"message": "Data updated successfully."})
+
+
+def getREdata(request):
+    RE.get_listings()
     return JsonResponse({"message": "Data updated successfully."})
 
 
@@ -756,8 +775,10 @@ def getBmOrders(request):
 def getBmOrdersCron(request):
     if request.method == "GET":
         try:
+            # RE.get_orders()
             BM.get_orders(state=3)
             BM.get_listings()
+            RE.get_listings()
             return HttpResponse(status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

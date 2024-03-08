@@ -217,7 +217,6 @@ class BackMarketAPI:
             )
             next = response.get("next", None)
             querystring = {}
-            print(next)
             if not next:
                 break
 
@@ -253,7 +252,6 @@ class BackMarketAPI:
             )
             items.append(instance)
         manage_stock = AppConfig.get_value("manage_stock", "false") == "true"
-        breakpoint()
         if manage_stock:
             for listing in items:
                 available_stock = calculate_available_stock()
@@ -364,6 +362,7 @@ class BackMarketAPI:
                 + order["shipping_address"]["last_name"],
                 shipping_address=shipping_address,
                 billing_address=billing_address,
+                email=order["shipping_address"]["email"],
                 company=order["shipping_address"]["company"],
                 defaults={
                     "contact": order["billing_address"]["first_name"]
@@ -389,7 +388,6 @@ class BackMarketAPI:
             for orderline in order["orderlines"]:
                 # Create Sales Order Items
                 try:
-                    print(f'SKU:{orderline["listing"]}')
                     sku = deviceAttributes.objects.get(sku=orderline["listing"])
                 except deviceAttributes.DoesNotExist:
                     sku = orderline["listing"]
@@ -409,9 +407,7 @@ class BackMarketAPI:
                         "sku": salesOrderItem.sku.sku,
                     }
                 )
-                print(payload)
                 response = requests.post(confirm_url, data=payload, headers=headers)
-                print(response)
                 if response.status_code == 200:
                     sales_order.state = "Confirmed"
                     sales_order.save()
@@ -559,7 +555,7 @@ class DHLAPI:
                             else ship_to_address.name
                         ),
                         "fullName": ship_to_address.name,
-                        "email": "david@eliteinnovations.co.uk",
+                        "email": customer_instance.email,
                     },
                     "registrationNumbers": [
                         {
@@ -697,24 +693,111 @@ class REFURBEDAPI:
 
     @classmethod
     def get_listings(cls):
-        # TODO: Implement pagination
-        # body = {"filter": {"stock": {"gt": 0}}}
+        body = {"filter": {"stock": {"gt": 0}}}
         url = f"{cls.BASE_URL}OfferService/ListOffers"
-        response = requests.post(url, headers=cls.HEADERS).json()["offers"]
-        breakpoint()
-        for listing in response:
+        offers = []
+        response = requests.post(url, headers=cls.HEADERS, json=body).json()
+        offers.extend(response["offers"])
+        if response["has_more"]:
+            while response["has_more"]:
+                last_id = response["offers"][-1]["id"]
+                body["pagination"] = {"starting_after": last_id}
+                response = requests.post(url, headers=cls.HEADERS, json=body).json()
+                offers.extend(response["offers"])
+        for listing in offers:
             try:
                 sku_instance = deviceAttributes.objects.get(sku=listing["sku"])
             except:
                 sku_instance = None
-            RefurbedListing.objects.create(
+
+            RefurbedListing.objects.update_or_create(
                 listing_id=listing["id"],
-                title=listing["instance_name"],
-                sku=sku_instance,
-                quantity=listing["stock"],
-                refurbed_sku=listing["sku"],
-                ref_price=listing["reference_price"],
+                defaults={
+                    "title": listing["instance_name"],
+                    "sku": sku_instance,
+                    "quantity": listing["stock"],
+                    "refurbed_sku": listing["sku"],
+                    "ref_price": listing["reference_price"],
+                },
             )
+        return response
+
+    @classmethod
+    def get_orders(cls):
+        url = f"{cls.BASE_URL}OrderService/ListOrders"
+        body = {"filter": {"state": {"any_of": "ACCEPTED"}}}
+        response = requests.post(url, headers=cls.HEADERS, json=body).json()
+        for order in response["orders"]:
+            shipping_address, _ = address.objects.get_or_create(
+                name=f"{order['shipping_address']['first_name']} {order['shipping_address']['family_name']}",
+                street=order["shipping_address"]["street_name"],
+                street2=order["shipping_address"].get("house_no"),
+                city=order["shipping_address"]["town"],
+                state="",  # State is not provided in the JSON
+                postalCode=order["shipping_address"]["post_code"],
+                phone=order["shipping_address"]["phone_number"],
+                country=order["shipping_address"]["country_code"],
+            )
+
+            # Assuming billing_address is the same as shipping_address in this scenario
+            billing_address, _ = address.objects.get_or_create(
+                name=f"{order['invoice_address']['first_name']} {order['invoice_address']['family_name']}",
+                street2=order["invoice_address"]["street_name"],
+                street=order["invoice_address"].get("house_no"),
+                city=order["invoice_address"]["town"],
+                state="",  # State is not provided in the JSON
+                postalCode=order["invoice_address"]["post_code"],
+                phone=order["invoice_address"]["phone_number"],
+                country=order["invoice_address"]["country_code"],
+            )
+
+            # Process Customer
+            currency = currencies.objects.get(name=order["currency_code"])
+            customer_instance, _ = customer.objects.update_or_create(
+                email=order["customer_email"],
+                defaults={
+                    "name": f"{order['shipping_address']['first_name']} {order['shipping_address']['family_name']}",
+                    "shipping_address": shipping_address,
+                    "billing_address": billing_address,
+                    "contact": order["shipping_address"]["phone_number"],
+                    "phone": order["shipping_address"]["phone_number"],
+                    "currency": currency,
+                    # Assuming the channel or company might be part of a larger context not provided in the JSON
+                    # 'company': 'Your logic here',
+                    "channel": "Refurbed",
+                },
+            )
+
+            # Process Sales Order
+            sales_order, _ = salesOrders.objects.update_or_create(
+                so=order["id"],
+                defaults={
+                    "customer": customer_instance,
+                    "state": "Confirmed",
+                    # Fields like 'shipped_by' and 'warehouse' would need additional context or logic
+                },
+            )
+
+            # Assuming you might also want to process items in the order
+            for item in order["items"]:
+                sku_instance = deviceAttributes.objects.get(sku=item["sku"])
+                sales_order_item, _ = salesOrderItems.objects.update_or_create(
+                    salesorder=sales_order,
+                    sku=sku_instance,  # This assumes 'sku' can directly relate to your deviceAttributes model.
+                    defaults={
+                        "description": item["name"],
+                        "quantity": 1,  # Quantity is not directly provided; assuming 1 or extract as needed
+                        "unit_cost": item["total_charged"],
+                    },
+                )
+
+        return response
+
+    @classmethod
+    def update_listing(cls, listing_id, quantity):
+        url = f"{cls.BASE_URL}OfferService/UpdateOffer"
+        body = {"identifier": {"id": listing_id}, "stock": quantity}
+        response = requests.post(url, headers=cls.HEADERS, json=body).json()
         return response
 
 
@@ -753,7 +836,6 @@ def getWCResults():
     ]
     ids = [phone["id"] for phone in phones]
     imeis = [phone["esn"] for phone in phones]
-    print(phones[0])
     phonestoadd = []
     missingSKUs = []
 

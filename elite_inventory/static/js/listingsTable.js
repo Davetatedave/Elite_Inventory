@@ -12,14 +12,15 @@ $("#managetoggle").on("change", function () {
   });
 });
 
-let quantityCounter = function (data, type, row) {
+let quantityCounter = function (data, type, row, marketplace) {
   return `<div class="adjust">
-	<button class="minus btn btn-sm btn-dark">-</button>
+	<button class="minus${marketplace} btn btn-sm btn-dark">-</button>
 	<input readonly class="adjustInput" type="text" value="0" data-stock_listed=${row.stock_listed} data-stock_available=${row.stock_available}>
-	<button class="plus btn btn-sm btn-dark">+</button>
-  <button data-id="${row.listing_id}" class="add btn btn-primary">Update</button>
+	<button class="plus${marketplace} btn btn-sm btn-dark">+</button>
+  <button data-id="${row.listing_id}" class="add${marketplace} btn btn-primary">Update</button>
 </div>`;
 };
+
 $(document).ready(function () {
   $.ajax({
     method: "GET",
@@ -42,6 +43,7 @@ $("#marketplaceSelect .nav-link").on("click", function () {
   }
   active.removeClass("active");
   clicked.addClass("active");
+
   $.ajax({
     method: "GET",
     url: "/listings/",
@@ -62,7 +64,7 @@ let initialiseTable = function () {
         url: "/getBMdata/",
         success: function (result) {
           console.log("Got BM Data:" + result.response);
-          location.reload();
+          bmTable.ajax.reload();
         },
       });
     };
@@ -118,7 +120,7 @@ let initialiseTable = function () {
           name: "quantityAdjust",
           orderable: false,
           render: function (data, type, row) {
-            return quantityCounter(data, type, row);
+            return quantityCounter(data, type, row, (marketplace = "BM"));
           },
         },
       ],
@@ -134,7 +136,7 @@ let initialiseTable = function () {
     bmTable.on("init.dt", function () {
       htmx.process(document.body);
       let intervalId;
-      $(document).on("mousedown", ".plus", function () {
+      $(document).on("mousedown", ".plusBM", function () {
         let input = $(this).siblings("input");
         let currentValue = parseInt(input.val(), 10);
         let stockListed = parseInt(input.data("stock_listed"), 10);
@@ -163,28 +165,20 @@ let initialiseTable = function () {
           }
         }, 100); // Adjust the interval time (in milliseconds) as needed
       });
-      $(document).on("mouseup", ".plus", function () {
-        clearInterval(intervalId);
-      });
-      $(document).on("mousedown", ".minus", function () {
-        let input = $(this).siblings("input");
-        let currentValue = parseInt(input.val(), 10);
-        let stockListed = parseInt(input.data("stock_listed"), 10);
-        let min = -stockListed; // Assuming minimum is 0 or another positive number
-
-        // Decrement the value on initial mousedown
-        if (currentValue > min) {
-          input.val(currentValue - 1);
-        } else {
-          // Stop the continuous decrement when reaching the minimum
+      $(document)
+        .off("mouseup", ".plusBM")
+        .on("mouseup", ".plusBM", function () {
           clearInterval(intervalId);
-          showTooltip(input, "Min Amount");
-        }
-
-        // Set up a continuous decrement while mouse is held down
-        intervalId = setInterval(function () {
+        });
+      $(document)
+        .off("mousedown", ".minusBM")
+        .on("mousedown", ".minusBM", function () {
+          let input = $(this).siblings("input");
           let currentValue = parseInt(input.val(), 10);
+          let stockListed = parseInt(input.data("stock_listed"), 10);
+          let min = -stockListed; // Assuming minimum is 0 or another positive number
 
+          // Decrement the value on initial mousedown
           if (currentValue > min) {
             input.val(currentValue - 1);
           } else {
@@ -192,42 +186,63 @@ let initialiseTable = function () {
             clearInterval(intervalId);
             showTooltip(input, "Min Amount");
           }
-        }, 100); // Adjust the interval time (in milliseconds) as needed
-      });
-      $(document).on("mouseup", ".minus", function () {
-        clearInterval(intervalId);
-      });
-      $(document).on("click", ".add", function () {
-        console.log("Add clicked");
-        let csrftoken = Cookies.get("csrftoken");
-        let listing_id = $(this).data("id");
-        let input = $(this).siblings("input");
-        let currentValue = parseInt(input.val(), 10);
-        let stockListed = parseInt(input.data("stock_listed"), 10);
-        let data = {
-          listing_id: listing_id,
-          quantity: currentValue + stockListed,
-        };
-        $.ajax({
-          type: "POST",
-          url: "/updateBMquantity/",
-          headers: { "X-CSRFToken": csrftoken },
-          data: data,
-          success: function (result) {
-            console.log(result);
-            getBmData();
-          },
+
+          // Set up a continuous decrement while mouse is held down
+          intervalId = setInterval(function () {
+            let currentValue = parseInt(input.val(), 10);
+
+            if (currentValue > min) {
+              input.val(currentValue - 1);
+            } else {
+              // Stop the continuous decrement when reaching the minimum
+              clearInterval(intervalId);
+              showTooltip(input, "Min Amount");
+            }
+          }, 100); // Adjust the interval time (in milliseconds) as needed
         });
-      });
+      $(document)
+        .off("mouseup", ".minusBM")
+        .on("mouseup", ".minusBM", function () {
+          clearInterval(intervalId);
+        });
+      $(document)
+        .off("click", ".addBM")
+        .on("click", ".addBM", function () {
+          if ($("#marketplaceSelect .nav-link.active") == "BM") {
+            console.log("Add BM");
+            let csrftoken = Cookies.get("csrftoken");
+            let listing_id = $(this).data("id");
+            let input = $(this).siblings("input");
+            let currentValue = parseInt(input.val(), 10);
+            let stockListed = parseInt(input.data("stock_listed"), 10);
+            let data = {
+              listing_id: listing_id,
+              quantity: currentValue + stockListed,
+            };
+            $.ajax({
+              type: "POST",
+              url: "/updateBMquantity/",
+              headers: { "X-CSRFToken": csrftoken },
+              data: data,
+              success: function (result) {
+                console.log(result);
+                getBmData();
+              },
+            });
+          } else {
+            return;
+          }
+        });
     });
   } else {
     console.log("RE Table");
     const getReData = function () {
+      console.log("Getting RE Data");
       $.ajax({
-        url: "/RElistingsajax/",
+        url: "/getREdata/",
         success: function (result) {
           console.log("Got RE Data:" + result.response);
-          location.reload();
+          reTable.ajax.reload();
         },
       });
     };
@@ -276,7 +291,7 @@ let initialiseTable = function () {
           name: "quantityAdjust",
           orderable: false,
           render: function (data, type, row) {
-            return quantityCounter(data, type, row);
+            return quantityCounter(data, type, row, (marketplace = "RE"));
           },
         },
       ],
@@ -292,26 +307,16 @@ let initialiseTable = function () {
     reTable.on("init.dt", function () {
       htmx.process(document.body);
       let intervalId;
-      $(document).on("mousedown", ".plus", function () {
-        let input = $(this).siblings("input");
-        let currentValue = parseInt(input.val(), 10);
-        let stockListed = parseInt(input.data("stock_listed"), 10);
-        let stockAvailable = parseInt(input.data("stock_available"), 10);
-        let max = stockAvailable - stockListed; // Assuming minimum is 0 or another positive number
-
-        // Decrement the value on initial mousedown
-        if (currentValue < max) {
-          input.val(currentValue + 1);
-        } else {
-          // Stop the continuous decrement when reaching the minimum
-          clearInterval(intervalId);
-          showTooltip(input, "Max Amount");
-        }
-
-        // Set up a continuous decrement while mouse is held down
-        intervalId = setInterval(function () {
+      $(document)
+        .off("mousedown", ".plusRE")
+        .on("mousedown", ".plusRE", function () {
+          let input = $(this).siblings("input");
           let currentValue = parseInt(input.val(), 10);
+          let stockListed = parseInt(input.data("stock_listed"), 10);
+          let stockAvailable = parseInt(input.data("stock_available"), 10);
+          let max = stockAvailable - stockListed; // Assuming minimum is 0 or another positive number
 
+          // Decrement the value on initial mousedown
           if (currentValue < max) {
             input.val(currentValue + 1);
           } else {
@@ -319,30 +324,34 @@ let initialiseTable = function () {
             clearInterval(intervalId);
             showTooltip(input, "Max Amount");
           }
-        }, 100); // Adjust the interval time (in milliseconds) as needed
-      });
-      $(document).on("mouseup", ".plus", function () {
-        clearInterval(intervalId);
-      });
-      $(document).on("mousedown", ".minus", function () {
-        let input = $(this).siblings("input");
-        let currentValue = parseInt(input.val(), 10);
-        let stockListed = parseInt(input.data("stock_listed"), 10);
-        let min = -stockListed; // Assuming minimum is 0 or another positive number
 
-        // Decrement the value on initial mousedown
-        if (currentValue > min) {
-          input.val(currentValue - 1);
-        } else {
-          // Stop the continuous decrement when reaching the minimum
+          // Set up a continuous decrement while mouse is held down
+          intervalId = setInterval(function () {
+            let currentValue = parseInt(input.val(), 10);
+
+            if (currentValue < max) {
+              input.val(currentValue + 1);
+            } else {
+              // Stop the continuous decrement when reaching the minimum
+              clearInterval(intervalId);
+              showTooltip(input, "Max Amount");
+            }
+          }, 100); // Adjust the interval time (in milliseconds) as needed
+        });
+      $(document)
+        .off("mouseupRE", ".plusRE")
+        .on("mouseupRE", ".plusRE", function () {
           clearInterval(intervalId);
-          showTooltip(input, "Min Amount");
-        }
-
-        // Set up a continuous decrement while mouse is held down
-        intervalId = setInterval(function () {
+        });
+      $(document)
+        .off("mousedown", ".minusRE")
+        .on("mousedown", ".minusRE", function () {
+          let input = $(this).siblings("input");
           let currentValue = parseInt(input.val(), 10);
+          let stockListed = parseInt(input.data("stock_listed"), 10);
+          let min = -stockListed; // Assuming minimum is 0 or another positive number
 
+          // Decrement the value on initial mousedown
           if (currentValue > min) {
             input.val(currentValue - 1);
           } else {
@@ -350,33 +359,48 @@ let initialiseTable = function () {
             clearInterval(intervalId);
             showTooltip(input, "Min Amount");
           }
-        }, 100); // Adjust the interval time (in milliseconds) as needed
-      });
-      $(document).on("mouseup", ".minus", function () {
-        clearInterval(intervalId);
-      });
-      $(document).on("click", ".add", function () {
-        console.log("Add clicked");
-        let csrftoken = Cookies.get("csrftoken");
-        let listing_id = $(this).data("id");
-        let input = $(this).siblings("input");
-        let currentValue = parseInt(input.val(), 10);
-        let stockListed = parseInt(input.data("stock_listed"), 10);
-        let data = {
-          listing_id: listing_id,
-          quantity: currentValue + stockListed,
-        };
-        $.ajax({
-          type: "POST",
-          url: "/updateREquantity/",
-          headers: { "X-CSRFToken": csrftoken },
-          data: data,
-          success: function (result) {
-            console.log(result);
-            getReData();
-          },
+
+          // Set up a continuous decrement while mouse is held down
+          intervalId = setInterval(function () {
+            let currentValue = parseInt(input.val(), 10);
+
+            if (currentValue > min) {
+              input.val(currentValue - 1);
+            } else {
+              // Stop the continuous decrement when reaching the minimum
+              clearInterval(intervalId);
+              showTooltip(input, "Min Amount");
+            }
+          }, 100); // Adjust the interval time (in milliseconds) as needed
         });
-      });
+      $(document)
+        .off("mouseup", ".minusRE")
+        .on("mouseup", ".minusRE", function () {
+          clearInterval(intervalId);
+        });
+      $(document)
+        .off("click", ".addRE")
+        .on("click", ".addRE", function () {
+          console.log("Add clicked RE");
+          let csrftoken = Cookies.get("csrftoken");
+          let listing_id = $(this).data("id");
+          let input = $(this).siblings("input");
+          let currentValue = parseInt(input.val(), 10);
+          let stockListed = parseInt(input.data("stock_listed"), 10);
+          let data = {
+            listing_id: listing_id,
+            quantity: currentValue + stockListed,
+          };
+          $.ajax({
+            type: "POST",
+            url: "/updateREquantity/",
+            headers: { "X-CSRFToken": csrftoken },
+            data: data,
+            success: function (result) {
+              getReData();
+            },
+          });
+        });
     });
   }
 };

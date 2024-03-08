@@ -135,10 +135,10 @@ class purchaseOrderItems(models.Model):
 
 
 class address(models.Model):
-    name = models.CharField(max_length=40, verbose_name="Name")
-    street = models.CharField(max_length=50, verbose_name="Street")
-    street2 = models.CharField(max_length=40, verbose_name="Street2", null=True)
-    city = models.CharField(max_length=40, verbose_name="City")
+    name = models.CharField(max_length=120, verbose_name="Name")
+    street = models.CharField(max_length=120, verbose_name="Street")
+    street2 = models.CharField(max_length=120, verbose_name="Street2", null=True)
+    city = models.CharField(max_length=50, verbose_name="City")
     state = models.CharField(max_length=40, verbose_name="State")
     postalCode = models.CharField(max_length=20, verbose_name="Zip")
     phone = models.CharField(max_length=20, verbose_name="Phone")
@@ -146,7 +146,7 @@ class address(models.Model):
 
 
 class customer(models.Model):
-    name = models.CharField(max_length=50, verbose_name="Customer Name")
+    name = models.CharField(max_length=120, verbose_name="Customer Name")
     shipping_address = models.ForeignKey(
         address,
         on_delete=models.PROTECT,
@@ -159,10 +159,10 @@ class customer(models.Model):
         verbose_name="Billing Address",
         related_name="billing_customers",
     )
-    company = models.CharField(max_length=50, verbose_name="Company", null=True)
-    contact = models.CharField(max_length=50, verbose_name="Contact")
+    company = models.CharField(max_length=120, verbose_name="Company", null=True)
+    contact = models.CharField(max_length=120, verbose_name="Contact")
     phone = models.CharField(max_length=20, verbose_name="Phone", null=True)
-    email = models.CharField(max_length=20, verbose_name="Email")
+    email = models.CharField(max_length=120, verbose_name="Email")
     currency = models.ForeignKey(
         currencies, on_delete=models.SET_NULL, verbose_name="Currency", null=True
     )
@@ -200,7 +200,7 @@ class salesOrderItems(models.Model):
     description = models.CharField(max_length=80, verbose_name="Description", null=True)
     quantity = models.IntegerField(verbose_name="Quantity")
     unit_cost = models.DecimalField(
-        max_digits=5, decimal_places=2, verbose_name="Unit Cost"
+        max_digits=7, decimal_places=2, verbose_name="Unit Cost"
     )
 
 
